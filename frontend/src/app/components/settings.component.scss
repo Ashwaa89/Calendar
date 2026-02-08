@@ -1,0 +1,170 @@
+.settings-container {
+  padding: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.page-header {
+  margin-bottom: 2rem;
+
+  h1 {
+    font-size: 2.5rem;
+    margin: 0;
+    color: #333;
+  }
+
+  p {
+    color: #666;
+    margin: 0.5rem 0 0 0;
+  }
+}
+
+.pin-gate {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+.pin-card {
+  background: white;
+  padding: 3rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+
+  .lock-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+  }
+
+  h2 {
+    margin: 0 0 0.5rem 0;
+    color: #333;
+  }
+
+  p {
+    color: #666;
+    margin-bottom: 2rem;
+  }
+}
+
+.pin-form {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+
+  .pin-input {
+    flex: 1;
+    max-width: 200px;
+    padding: 1rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1.5rem;
+    text-align: center;
+    letter-spacing: 0.5rem;
+    font-weight: 600;
+
+    &:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+  }
+
+  .btn-primary {
+    padding: 1rem 2rem;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+  }
+}
+
+.settings-content {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.settings-section {
+  background: white;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+
+  h2 {
+    margin: 0 0 0.5rem 0;
+    color: #333;
+  }
+
+  .section-description {
+    color: #666;
+    margin-bottom: 1.5rem;
+  }
+}
+
+.calendar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.calendar-item {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: #e9ecef;
+  }
+
+  input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin-right: 1rem;
+    cursor: pointer;
+  }
+
+  label {
+    flex: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+
+    .calendar-name {
+      font-weight: 500;
+      color: #333;
+    }
+  }
+}
+
+.no-calendars,
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}

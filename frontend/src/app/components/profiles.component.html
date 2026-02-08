@@ -1,0 +1,171 @@
+<div class="profiles-container">
+  <div class="page-header">
+    <div>
+      <h1>👨‍👩‍👧‍👦 Family Profiles</h1>
+      <p>Manage your family members and their tasks</p>
+    </div>
+    <button class="add-btn" (click)="openAddModal()">
+      <span>+</span> Add Profile
+    </button>
+  </div>
+
+  <div class="profiles-grid">
+    <div class="profile-card" *ngFor="let profile of profiles">
+      <div class="profile-avatar" [style.borderColor]="profile.color || '#667eea'">
+        {{ profile.avatar }}
+      </div>
+      <div class="profile-info">
+        <h3>{{ profile.name }}</h3>
+        <p class="age" *ngIf="profile.age">{{ profile.age }} years old</p>
+      </div>
+      <div class="profile-stars">
+        <span class="star-icon">⭐</span>
+        <span class="star-count">{{ profile.stars }}</span>
+      </div>
+      <div class="profile-actions">
+        <button class="action-btn primary" (click)="viewTasks(profile.id)">
+          View Tasks
+        </button>
+        <button class="action-btn secondary" (click)="openEditModal(profile)">
+          Edit
+        </button>
+        <button class="action-btn danger" (click)="deleteProfile(profile.id)">
+          Delete
+        </button>
+      </div>
+    </div>
+
+    <div class="profile-card add-card" (click)="openAddModal()" *ngIf="profiles.length === 0">
+      <div class="add-icon">+</div>
+      <p>Add your first profile</p>
+    </div>
+  </div>
+
+  <!-- Add Profile Modal -->
+  <div class="modal-overlay" *ngIf="showAddModal" (click)="closeAddModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Add New Profile</h2>
+        <button class="close-btn" (click)="closeAddModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Name</label>
+          <input 
+            type="text" 
+            [(ngModel)]="newProfile.name" 
+            placeholder="Enter name"
+            class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label>Age (optional)</label>
+          <input 
+            type="number" 
+            [(ngModel)]="newProfile.age" 
+            placeholder="Enter age"
+            class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label>Select Avatar</label>
+          <div class="avatar-grid">
+            <div 
+              class="avatar-option" 
+              *ngFor="let avatar of avatars"
+              [class.selected]="newProfile.avatar === avatar"
+              (click)="selectAvatar(avatar)">
+              {{ avatar }}
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Select Color</label>
+          <div class="color-grid">
+            <button
+              class="color-swatch"
+              *ngFor="let color of colors"
+              [style.backgroundColor]="color"
+              [class.selected]="newProfile.color === color"
+              (click)="selectColor(color)"></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeAddModal()">Cancel</button>
+        <button class="btn-primary" (click)="addProfile()" [disabled]="!newProfile.name">
+          Add Profile
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Profile Modal -->
+  <div class="modal-overlay" *ngIf="showEditModal" (click)="closeEditModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Edit Profile</h2>
+        <button class="close-btn" (click)="closeEditModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Name</label>
+          <input 
+            type="text" 
+            [(ngModel)]="editProfile.name" 
+            placeholder="Enter name"
+            class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label>Age (optional)</label>
+          <input 
+            type="number" 
+            [(ngModel)]="editProfile.age" 
+            placeholder="Enter age"
+            class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label>Select Avatar</label>
+          <div class="avatar-grid">
+            <div 
+              class="avatar-option" 
+              *ngFor="let avatar of avatars"
+              [class.selected]="editProfile.avatar === avatar"
+              (click)="selectEditAvatar(avatar)">
+              {{ avatar }}
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Select Color</label>
+          <div class="color-grid">
+            <button
+              class="color-swatch"
+              *ngFor="let color of colors"
+              [style.backgroundColor]="color"
+              [class.selected]="editProfile.color === color"
+              (click)="selectEditColor(color)"></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeEditModal()">Cancel</button>
+        <button class="btn-primary" (click)="updateProfile()" [disabled]="!editProfile.name">
+          Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="loading-overlay" *ngIf="loading">
+    <div class="spinner"></div>
+  </div>
+</div>

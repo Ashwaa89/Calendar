@@ -1,0 +1,78 @@
+<div class="app-container" *ngIf="authService.user$ | async as user; else loginView">
+  <nav class="sidebar">
+    <div class="logo">
+      <h1>🏠 Family Hub</h1>
+    </div>
+    
+    <div class="user-info">
+      <img [src]="user.picture" alt="Profile" class="user-avatar" />
+      <div class="user-details">
+        <p class="user-name">{{ user.name }}</p>
+        <p class="user-email">{{ user.email }}</p>
+      </div>
+    </div>
+
+    <ul class="nav-menu">
+      <li>
+        <a routerLink="/calendar" routerLinkActive="active">
+          <span class="icon">📅</span>
+          <span>Calendar</span>
+        </a>
+      </li>
+      <li>
+        <a routerLink="/profiles" routerLinkActive="active">
+          <span class="icon">👨‍👩‍👧‍👦</span>
+          <span>Profiles</span>
+        </a>
+      </li>
+      <li>
+        <a routerLink="/tasks" routerLinkActive="active">
+          <span class="icon">✅</span>
+          <span>Tasks</span>
+        </a>
+      </li>
+      <li>
+        <a routerLink="/prizes" routerLinkActive="active">
+          <span class="icon">🏆</span>
+          <span>Rewards</span>
+        </a>
+      </li>
+      <li>
+        <a routerLink="/meals" routerLinkActive="active">
+          <span class="icon">🍽️</span>
+          <span>Meal Planner</span>
+        </a>
+      </li>
+      <li>
+        <a routerLink="/inventory" routerLinkActive="active">
+          <span class="icon">🛒</span>
+          <span>Inventory</span>
+        </a>
+      </li>
+      <li>
+        <a routerLink="/shopping" routerLinkActive="active">
+          <span class="icon">🧾</span>
+          <span>Shopping List</span>
+        </a>
+      </li>
+      <li>
+        <a routerLink="/settings" routerLinkActive="active">
+          <span class="icon">⚙️</span>
+          <span>Settings</span>
+        </a>
+      </li>
+    </ul>
+
+    <button class="logout-btn" (click)="authService.logout()">
+      <span>🚪</span> Logout
+    </button>
+  </nav>
+
+  <main class="main-content">
+    <router-outlet></router-outlet>
+  </main>
+</div>
+
+<ng-template #loginView>
+  <router-outlet></router-outlet>
+</ng-template>

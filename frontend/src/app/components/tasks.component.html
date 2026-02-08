@@ -1,0 +1,262 @@
+<div class="tasks-container">
+  <div class="page-header">
+    <div class="header-with-back">
+      <button class="back-btn" (click)="goBack()">← Back</button>
+      <div>
+        <h1>✅ Tasks</h1>
+        <p>Choose tasks and earn stars</p>
+      </div>
+    </div>
+    <button class="add-btn" (click)="openAddModal()">
+      <span>+</span> Add Task
+    </button>
+  </div>
+
+  <h2 class="section-title">Assigned Tasks</h2>
+  <div class="tasks-grid">
+    <div class="task-card" *ngFor="let task of tasks" 
+         [class.unavailable]="!isTaskAvailable(task)">
+      <div class="task-header">
+        <h3>{{ task.title }}</h3>
+        <div class="task-stars">
+          <span class="star-icon">⭐</span>
+          <span>{{ task.stars }}</span>
+        </div>
+      </div>
+
+      <p class="task-description" *ngIf="task.description">
+        {{ task.description }}
+      </p>
+
+      <div class="task-frequency" *ngIf="task.frequency">
+        <span class="frequency-icon">🔄</span>
+        <span>Repeats every {{ task.frequency }} {{ task.frequencyUnit }}</span>
+      </div>
+
+      <div class="task-status">
+        <span *ngIf="!isTaskAvailable(task)" class="status-pending">
+          {{ getTimeUntilAvailable(task) }}
+        </span>
+        <span *ngIf="isTaskAvailable(task)" class="status-available">
+          Ready to complete!
+        </span>
+      </div>
+
+      <div class="task-actions">
+        <button 
+          class="action-btn complete" 
+          (click)="completeTask(task)"
+          [disabled]="!isTaskAvailable(task)">
+          ✓ Complete
+        </button>
+        <button class="action-btn remove" (click)="unassignTask(task)">
+          Remove
+        </button>
+      </div>
+    </div>
+
+    <div class="task-card add-card" (click)="openAddModal()" *ngIf="tasks.length === 0">
+      <div class="add-icon">+</div>
+      <p>Add your first assigned task</p>
+    </div>
+  </div>
+
+  <h2 class="section-title">Task Library</h2>
+  <div class="tasks-grid">
+    <div class="task-card" *ngFor="let task of catalogTasks">
+      <div class="task-header">
+        <h3>{{ task.title }}</h3>
+        <div class="task-stars">
+          <span class="star-icon">⭐</span>
+          <span>{{ task.stars }}</span>
+        </div>
+      </div>
+
+      <p class="task-description" *ngIf="task.description">
+        {{ task.description }}
+      </p>
+
+      <div class="task-frequency" *ngIf="task.frequency">
+        <span class="frequency-icon">🔄</span>
+        <span>Repeats every {{ task.frequency }} {{ task.frequencyUnit }}</span>
+      </div>
+
+      <div class="task-actions">
+        <button
+          class="action-btn assign"
+          (click)="assignTask(task)"
+          [disabled]="isAssigned(task.id)">
+          {{ isAssigned(task.id) ? 'Assigned' : 'Assign to Profile' }}
+        </button>
+        <button class="action-btn edit" (click)="openEditModal(task)">
+          ✏️
+        </button>
+        <button class="action-btn delete" (click)="deleteTask(task.id)">
+          🗑️
+        </button>
+      </div>
+    </div>
+
+    <div class="task-card add-card" (click)="openAddModal()" *ngIf="catalogTasks.length === 0">
+      <div class="add-icon">+</div>
+      <p>Add your first library task</p>
+    </div>
+  </div>
+
+  <!-- Add Task Modal -->
+  <div class="modal-overlay" *ngIf="showAddModal" (click)="closeAddModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Add New Task</h2>
+        <button class="close-btn" (click)="closeAddModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Task Title</label>
+          <input 
+            type="text" 
+            [(ngModel)]="newTask.title" 
+            placeholder="e.g., Clean your room"
+            class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label>Description (optional)</label>
+          <textarea 
+            [(ngModel)]="newTask.description" 
+            placeholder="Additional details..."
+            class="form-input"
+            rows="3"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Stars Reward</label>
+          <input 
+            type="number" 
+            [(ngModel)]="newTask.stars" 
+            min="1"
+            class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label>
+            <input type="checkbox" [(ngModel)]="newTask.frequency" [ngModelOptions]="{standalone: true}" 
+                   (change)="newTask.frequency = newTask.frequency ? 1 : null" />
+            Recurring Task
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label>
+            <input type="checkbox" [(ngModel)]="newTask.assignToProfile" />
+            Assign to this profile now
+          </label>
+        </div>
+
+        <div class="form-row" *ngIf="newTask.frequency !== null">
+          <div class="form-group">
+            <label>Repeat Every</label>
+            <input 
+              type="number" 
+              [(ngModel)]="newTask.frequency" 
+              min="1"
+              class="form-input" />
+          </div>
+          <div class="form-group">
+            <label>Unit</label>
+            <select [(ngModel)]="newTask.frequencyUnit" class="form-input">
+              <option value="hours">Hours</option>
+              <option value="days">Days</option>
+              <option value="weeks">Weeks</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeAddModal()">Cancel</button>
+        <button class="btn-primary" (click)="addTask()" [disabled]="!newTask.title">
+          Add Task
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Task Modal -->
+  <div class="modal-overlay" *ngIf="showEditModal" (click)="closeEditModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Edit Task</h2>
+        <button class="close-btn" (click)="closeEditModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Task Title</label>
+          <input 
+            type="text" 
+            [(ngModel)]="editTask.title" 
+            placeholder="e.g., Clean your room"
+            class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label>Description (optional)</label>
+          <textarea 
+            [(ngModel)]="editTask.description" 
+            placeholder="Additional details..."
+            class="form-input"
+            rows="3"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Stars Reward</label>
+          <input 
+            type="number" 
+            [(ngModel)]="editTask.stars" 
+            min="1"
+            class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label>
+            <input type="checkbox" [(ngModel)]="editTask.frequency" [ngModelOptions]="{standalone: true}" 
+                   (change)="editTask.frequency = editTask.frequency ? 1 : null" />
+            Recurring Task
+          </label>
+        </div>
+
+        <div class="form-row" *ngIf="editTask.frequency !== null">
+          <div class="form-group">
+            <label>Repeat Every</label>
+            <input 
+              type="number" 
+              [(ngModel)]="editTask.frequency" 
+              min="1"
+              class="form-input" />
+          </div>
+          <div class="form-group">
+            <label>Unit</label>
+            <select [(ngModel)]="editTask.frequencyUnit" class="form-input">
+              <option value="hours">Hours</option>
+              <option value="days">Days</option>
+              <option value="weeks">Weeks</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeEditModal()">Cancel</button>
+        <button class="btn-primary" (click)="updateTask()" [disabled]="!editTask.title">
+          Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="loading-overlay" *ngIf="loading">
+    <div class="spinner"></div>
+  </div>
+</div>

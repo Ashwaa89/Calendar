@@ -1,0 +1,109 @@
+<div class="calendar-container">
+  <div class="page-header">
+    <h1>📅 Calendar</h1>
+    <p>View and sync your Google Calendar events</p>
+  </div>
+
+  <div class="calendar-content">
+    <!-- Profile Filter Sidebar -->
+    <div class="calendar-sidebar">
+      <div class="profile-filter" *ngIf="profiles.length > 0">
+        <div class="filter-header">
+          <h3>Filter by Profile</h3>
+          <button class="clear-btn" (click)="clearProfileFilters()" [disabled]="profileFilters.size === 0">Clear</button>
+        </div>
+        <div class="profile-list">
+          <button
+            class="profile-pill"
+            *ngFor="let profile of profiles"
+            [class.selected]="profileFilters.has(profile.id)"
+            (click)="toggleProfileFilter(profile.id)"
+            [ngStyle]="getProfilePillStyle(profile, profileFilters.has(profile.id))">
+            <span class="avatar" [ngStyle]="getProfileAvatarStyle(profile)">{{ profile.avatar }}</span>
+            <span class="name">{{ profile.name }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Calendar Grid -->
+    <div class="calendar-main">
+      <div class="calendar-header">
+        <button class="nav-btn" (click)="previousMonth()">‹</button>
+        <h2>{{ formatMonthYear() }}</h2>
+        <button class="nav-btn" (click)="nextMonth()">›</button>
+      </div>
+
+      <div class="calendar-grid">
+        <div class="day-header">Sun</div>
+        <div class="day-header">Mon</div>
+        <div class="day-header">Tue</div>
+        <div class="day-header">Wed</div>
+        <div class="day-header">Thu</div>
+        <div class="day-header">Fri</div>
+        <div class="day-header">Sat</div>
+
+        <div 
+          class="day-cell" 
+          *ngFor="let day of calendarDays"
+          [class.today]="isToday(day)"
+          [class.other-month]="!isCurrentMonth(day)">
+          <div class="day-number">{{ day.getDate() }}</div>
+          <div class="day-events">
+            <div
+              class="event-dot"
+              *ngFor="let event of getFilteredEventsForDay(day)"
+              [title]="event.summary"
+              (click)="openAssignModal(event)">
+              <span class="event-title">{{ event.summary }}</span>
+              <span class="event-profiles" *ngIf="getAssignedProfiles(event).length">
+                <span
+                  class="profile-avatar"
+                  *ngFor="let profile of getAssignedProfiles(event)"
+                  [ngStyle]="getProfileAvatarStyle(profile)">
+                  {{ profile.avatar }}
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="loading-overlay" *ngIf="loading">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- Assign Event Modal -->
+  <div class="modal-overlay" *ngIf="showAssignModal" (click)="closeAssignModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Assign Event</h2>
+        <button class="close-btn" (click)="closeAssignModal()">×</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-event" *ngIf="selectedEvent">{{ selectedEvent.summary }}</p>
+        <p class="modal-subtitle">Choose profiles for this event (multi-select)</p>
+      </div>
+
+      <div class="profile-strip">
+        <button
+          class="profile-pill"
+          *ngFor="let profile of profiles"
+          [class.selected]="selectedEventProfileIds.has(profile.id)"
+          (click)="toggleAssignProfile(profile.id)"
+          [ngStyle]="getProfilePillStyle(profile, selectedEventProfileIds.has(profile.id))">
+          <span class="avatar" [ngStyle]="getProfileAvatarStyle(profile)">{{ profile.avatar }}</span>
+          <span class="name">{{ profile.name }}</span>
+        </button>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeAssignModal()">Cancel</button>
+        <button class="btn-primary" (click)="saveEventAssignment()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>

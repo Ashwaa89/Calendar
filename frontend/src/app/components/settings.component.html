@@ -1,0 +1,55 @@
+<div class="settings-container">
+  <div class="page-header">
+    <h1>⚙️ Settings</h1>
+    <p>Manage your calendar and app settings</p>
+  </div>
+
+  <!-- PIN Verification -->
+  <div class="pin-gate" *ngIf="!pinVerified">
+    <div class="pin-card">
+      <div class="lock-icon">🔒</div>
+      <h2>Admin Access Required</h2>
+      <p>Enter your admin PIN to access settings</p>
+      <div class="pin-form">
+        <input
+          type="password"
+          [(ngModel)]="pinInput"
+          placeholder="Enter PIN"
+          class="pin-input"
+          (keyup.enter)="verifyPin()"
+          maxlength="4"
+          autofocus />
+        <button class="btn-primary" (click)="verifyPin()">Unlock</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Content (shown after PIN verification) -->
+  <div class="settings-content" *ngIf="pinVerified">
+    <div class="settings-section">
+      <h2>📅 Calendar Settings</h2>
+      <p class="section-description">Select which Google Calendars to display in your calendar view</p>
+      
+      <div class="calendar-list" *ngIf="calendars.length > 0">
+        <div class="calendar-item" *ngFor="let calendar of calendars">
+          <input 
+            type="checkbox" 
+            [id]="calendar.id"
+            [checked]="selectedCalendars.has(calendar.id)"
+            (change)="toggleCalendar(calendar.id)" />
+          <label [for]="calendar.id">
+            <span class="calendar-name">{{ calendar.summary }}</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="no-calendars" *ngIf="calendars.length === 0 && !loading">
+        <p>No calendars found</p>
+      </div>
+
+      <div class="loading" *ngIf="loading">
+        <p>Loading calendars...</p>
+      </div>
+    </div>
+  </div>
+</div>

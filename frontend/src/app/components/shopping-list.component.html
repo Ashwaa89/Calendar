@@ -1,0 +1,82 @@
+<div class="shopping-container">
+  <div class="page-header">
+    <div>
+      <h1>🧾 Shopping List</h1>
+      <p>Auto-generated from meals and inventory</p>
+    </div>
+    <button class="add-btn" (click)="openAddModal()">
+      <span>+</span> Add Item
+    </button>
+  </div>
+
+  <div class="shopping-controls">
+    <span class="shopping-info">Auto list for next {{ shoppingDays }} days (meals - inventory)</span>
+    <button class="refresh-btn" (click)="refreshShoppingList()">⟲ Recalculate</button>
+  </div>
+
+  <div class="shopping-list">
+    <div class="shopping-item" *ngFor="let item of shoppingList">
+      <div class="item-details">
+        <span class="item-name">{{ item.name }}</span>
+        <span class="item-quantity">{{ item.quantity }} {{ item.unit }}</span>
+      </div>
+      <span class="source-badge" [class.auto]="item.source === 'auto'" [class.manual]="item.source === 'manual'" [class.mixed]="item.source === 'mixed'">
+        {{ item.source || 'manual' }}
+      </span>
+    </div>
+
+    <div class="shopping-empty" *ngIf="shoppingList.length === 0">
+      <p>Your shopping list is empty</p>
+      <button class="add-btn" (click)="openAddModal()">Add Item</button>
+    </div>
+  </div>
+
+  <!-- Add Item Modal -->
+  <div class="modal-overlay" *ngIf="showAddModal" (click)="closeAddModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Add Item</h2>
+        <button class="close-btn" (click)="closeAddModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Item Name</label>
+          <input 
+            type="text" 
+            [(ngModel)]="newItem.name" 
+            placeholder="e.g., Milk"
+            class="form-input" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Quantity</label>
+            <input 
+              type="number" 
+              [(ngModel)]="newItem.quantity" 
+              min="1"
+              class="form-input" />
+          </div>
+          <div class="form-group">
+            <label>Unit</label>
+            <select [(ngModel)]="newItem.unit" class="form-input">
+              <option *ngFor="let unit of units" [value]="unit">{{ unit }}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeAddModal()">Cancel</button>
+        <button class="btn-primary" (click)="addItem()" [disabled]="!newItem.name">
+          Add Item
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="loading-overlay" *ngIf="loading">
+    <div class="spinner"></div>
+  </div>
+</div>

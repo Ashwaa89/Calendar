@@ -1,0 +1,105 @@
+<div class="inventory-container">
+  <div class="page-header">
+    <div>
+      <h1>🛒 Food Inventory</h1>
+      <p>Track your pantry and shopping list</p>
+    </div>
+    <button class="add-btn" (click)="openAddModal()">
+      <span>+</span> Add Item
+    </button>
+  </div>
+
+  <div class="inventory-grid">
+    <div class="inventory-card" *ngFor="let item of inventory"
+         [class.expiring]="isExpiringSoon(item)"
+         [class.expired]="isExpired(item)">
+      <div class="item-header">
+        <span class="category-icon">{{ getCategoryIcon(item.category) }}</span>
+        <div class="item-info">
+          <h3>{{ item.name }}</h3>
+          <p class="category">{{ item.category }}</p>
+        </div>
+      </div>
+      <div class="item-quantity">
+        <span class="quantity">{{ item.quantity }} {{ item.unit }}</span>
+      </div>
+      <div class="item-expiry" *ngIf="item.expiryDate">
+        <span class="expiry-label" *ngIf="isExpired(item)">⚠️ Expired</span>
+        <span class="expiry-label" *ngIf="isExpiringSoon(item) && !isExpired(item)">⏰ Expiring Soon</span>
+        <span class="expiry-date">{{ item.expiryDate | date:'MMM d, y' }}</span>
+      </div>
+      <button class="delete-btn" (click)="deleteInventoryItem(item.id)">
+        🗑️ Delete
+      </button>
+    </div>
+
+    <div class="inventory-card add-card" (click)="openAddModal()" *ngIf="inventory.length === 0">
+      <div class="add-icon">+</div>
+      <p>Add your first item</p>
+    </div>
+  </div>
+
+  <!-- Add Item Modal -->
+  <div class="modal-overlay" *ngIf="showAddModal" (click)="closeAddModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Add Item</h2>
+        <button class="close-btn" (click)="closeAddModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Item Name</label>
+          <input 
+            type="text" 
+            [(ngModel)]="newItem.name" 
+            placeholder="e.g., Milk"
+            class="form-input" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Quantity</label>
+            <input 
+              type="number" 
+              [(ngModel)]="newItem.quantity" 
+              min="1"
+              class="form-input" />
+          </div>
+          <div class="form-group">
+            <label>Unit</label>
+            <select [(ngModel)]="newItem.unit" class="form-input">
+              <option *ngFor="let unit of units" [value]="unit">{{ unit }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Category</label>
+          <select [(ngModel)]="newItem.category" class="form-input">
+            <option *ngFor="let cat of categories" [value]="cat.toLowerCase()">{{ cat }}</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Expiry Date (optional)</label>
+          <input 
+            type="date" 
+            [(ngModel)]="newItem.expiryDate" 
+            class="form-input" />
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeAddModal()">Cancel</button>
+        <button class="btn-primary" (click)="addItem()" [disabled]="!newItem.name">
+          Add Item
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="loading-overlay" *ngIf="loading">
+    <div class="spinner"></div>
+  </div>
+</div>

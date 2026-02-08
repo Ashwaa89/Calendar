@@ -1,0 +1,109 @@
+<div class="meal-planner-container">
+  <div class="page-header">
+    <div>
+      <h1>🍽️ Meal Planner</h1>
+      <p>Plan your family's meals for the week</p>
+    </div>
+    <div class="week-nav">
+      <button class="nav-btn" (click)="previousWeek()">‹</button>
+      <span class="week-label">Week View</span>
+      <button class="nav-btn" (click)="nextWeek()">›</button>
+    </div>
+  </div>
+
+  <div class="meal-grid">
+    <div class="meal-type-col">
+      <div class="meal-type-header"></div>
+      <div class="meal-type-cell" *ngFor="let mealType of mealTypes">
+        <span class="meal-icon">{{ mealType.icon }}</span>
+        <span>{{ mealType.label }}</span>
+      </div>
+    </div>
+
+    <div class="day-col" *ngFor="let day of weekDays">
+      <div class="day-header">
+        <div class="day-name">{{ formatDate(day) }}</div>
+      </div>
+      <div class="meal-cell" *ngFor="let mealType of mealTypes">
+        <div class="meal-card" *ngFor="let meal of getMealsForDay(day, mealType.value)">
+          <div class="meal-title">{{ meal.title }}</div>
+          <div class="meal-ingredients" *ngIf="meal.ingredients?.length">
+            {{ formatIngredients(meal) }}
+          </div>
+          <button class="delete-btn" (click)="deleteMeal(meal.id)">×</button>
+        </div>
+        <button class="add-meal-btn" (click)="openAddModal(day, mealType.value)">
+          +
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Meal Modal -->
+  <div class="modal-overlay" *ngIf="showAddModal" (click)="closeAddModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Add Meal</h2>
+        <button class="close-btn" (click)="closeAddModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Meal Name</label>
+          <input 
+            type="text" 
+            [(ngModel)]="newMeal.title" 
+            placeholder="e.g., Spaghetti Bolognese"
+            class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label>Recipe / Notes (optional)</label>
+          <textarea 
+            [(ngModel)]="newMeal.recipe" 
+            placeholder="Cooking instructions or notes..."
+            class="form-input"
+            rows="4"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Ingredients</label>
+          <div class="ingredient-row">
+            <input
+              type="text"
+              [(ngModel)]="newIngredient.name"
+              placeholder="Ingredient name"
+              class="form-input" />
+            <input
+              type="number"
+              [(ngModel)]="newIngredient.quantity"
+              min="0.1"
+              class="form-input quantity" />
+            <select [(ngModel)]="newIngredient.unit" class="form-input unit">
+              <option *ngFor="let unit of ingredientUnits" [value]="unit">{{ unit }}</option>
+            </select>
+            <button class="add-ingredient-btn" (click)="addIngredient()">Add</button>
+          </div>
+
+          <div class="ingredient-list" *ngIf="newMeal.ingredients.length">
+            <div class="ingredient-item" *ngFor="let ingredient of newMeal.ingredients; let i = index">
+              <span>{{ ingredient.name }} ({{ ingredient.quantity }} {{ ingredient.unit }})</span>
+              <button class="remove-btn" (click)="removeIngredient(i)">×</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeAddModal()">Cancel</button>
+        <button class="btn-primary" (click)="addMeal()" [disabled]="!newMeal.title">
+          Add Meal
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="loading-overlay" *ngIf="loading">
+    <div class="spinner"></div>
+  </div>
+</div>

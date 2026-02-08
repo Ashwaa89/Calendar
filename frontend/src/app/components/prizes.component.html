@@ -1,0 +1,148 @@
+<div class="prizes-container">
+  <div class="page-header">
+    <div>
+      <h1>🏆 Rewards Shop</h1>
+      <p>Redeem stars for amazing prizes</p>
+    </div>
+    <button class="add-btn" (click)="openAddModal()">
+      <span>+</span> Add Prize
+    </button>
+  </div>
+
+  <div class="prizes-grid">
+    <div class="prize-card" *ngFor="let prize of prizes">
+      <div class="prize-icon">{{ prize.icon }}</div>
+      <div class="prize-info">
+        <h3>{{ prize.title }}</h3>
+        <p *ngIf="prize.description">{{ prize.description }}</p>
+      </div>
+      <div class="prize-cost">
+        <span class="star-icon">⭐</span>
+        <span class="cost">{{ prize.starCost }}</span>
+      </div>
+      <div class="prize-actions">
+        <button class="action-btn redeem" (click)="openRedeemModal(prize)">
+          Redeem
+        </button>
+        <button class="action-btn delete" (click)="deletePrize(prize.id)">
+          🗑️
+        </button>
+      </div>
+    </div>
+
+    <div class="prize-card add-card" (click)="openAddModal()" *ngIf="prizes.length === 0">
+      <div class="add-icon">+</div>
+      <p>Add your first prize</p>
+    </div>
+  </div>
+
+  <!-- Add Prize Modal -->
+  <div class="modal-overlay" *ngIf="showAddModal" (click)="closeAddModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Add New Prize</h2>
+        <button class="close-btn" (click)="closeAddModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Prize Title</label>
+          <input 
+            type="text" 
+            [(ngModel)]="newPrize.title" 
+            placeholder="e.g., Ice cream treat"
+            class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label>Description (optional)</label>
+          <textarea 
+            [(ngModel)]="newPrize.description" 
+            placeholder="Prize details..."
+            class="form-input"
+            rows="3"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Star Cost</label>
+          <input 
+            type="number" 
+            [(ngModel)]="newPrize.starCost" 
+            min="1"
+            class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label>Select Icon</label>
+          <div class="icon-grid">
+            <div 
+              class="icon-option" 
+              *ngFor="let icon of icons"
+              [class.selected]="newPrize.icon === icon"
+              (click)="selectIcon(icon)">
+              {{ icon }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeAddModal()">Cancel</button>
+        <button class="btn-primary" (click)="addPrize()" [disabled]="!newPrize.title">
+          Add Prize
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Redeem Prize Modal -->
+  <div class="modal-overlay" *ngIf="showRedeemModal" (click)="closeRedeemModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Redeem Prize</h2>
+        <button class="close-btn" (click)="closeRedeemModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="prize-preview" *ngIf="selectedPrize">
+          <div class="preview-icon">{{ selectedPrize.icon }}</div>
+          <h3>{{ selectedPrize.title }}</h3>
+          <p class="cost-label">Cost: {{ selectedPrize.starCost }} ⭐</p>
+        </div>
+
+        <div class="form-group">
+          <label>Select Profile</label>
+          <div class="profile-list">
+            <div 
+              class="profile-option" 
+              *ngFor="let profile of profiles"
+              [class.selected]="selectedProfileId === profile.id"
+              [class.insufficient]="!canAffordPrize(profile, selectedPrize!)"
+              (click)="selectProfile(profile.id)">
+              <div class="profile-avatar">{{ profile.avatar }}</div>
+              <div class="profile-details">
+                <span class="profile-name">{{ profile.name }}</span>
+                <span class="profile-stars">{{ profile.stars }} ⭐</span>
+              </div>
+              <span class="check-icon" *ngIf="selectedProfileId === profile.id">✓</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeRedeemModal()">Cancel</button>
+        <button 
+          class="btn-primary" 
+          (click)="redeemPrize()" 
+          [disabled]="!canRedeemPrize()">
+          Redeem Prize
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="loading-overlay" *ngIf="loading">
+    <div class="spinner"></div>
+  </div>
+</div>
