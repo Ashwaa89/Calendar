@@ -33,7 +33,10 @@ router.get('/google-calendars/:userId', async (req, res) => {
     }
     
     const calendars = await getUserCalendars(accessToken);
-    res.json({ calendars });
+    const selectedCalendars = Array.isArray(userData.selectedCalendars)
+      ? userData.selectedCalendars
+      : [];
+    res.json({ calendars, selectedCalendars });
   } catch (error) {
     console.error('Error fetching calendars:', error);
     res.status(500).json({ error: 'Failed to fetch calendars' });
@@ -110,11 +113,26 @@ router.get('/events/assignments/:userId', async (req, res) => {
       query = query.where('startDate', '<=', endDate);
     }
 
-    const snapshot = await query.get();
-    const assignments = [];
+    const [snapshot, seriesSnapshot] = await Promise.all([
+      query.get(),
+      db.collection(ASSIGNMENTS_COLLECTION)
+        .where('userId', '==', userId)
+        .where('applyToSeries', '==', true)
+        .get()
+    ]);
+
+    const assignmentsMap = new Map();
     snapshot.forEach(doc => {
-      assignments.push({ id: doc.id, ...doc.data() });
+      assignmentsMap.set(doc.id, { id: doc.id, ...doc.data() });
     });
+
+    seriesSnapshot.forEach(doc => {
+      if (!assignmentsMap.has(doc.id)) {
+        assignmentsMap.set(doc.id, { id: doc.id, ...doc.data() });
+      }
+    });
+
+    const assignments = Array.from(assignmentsMap.values());
 
     res.json({ assignments });
   } catch (error) {
@@ -127,7 +145,7 @@ router.get('/events/assignments/:userId', async (req, res) => {
 router.post('/events/assignments/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    const { eventId, calendarId, start, end, summary, profileIds } = req.body;
+    const { eventId, calendarId, start, end, summary, profileIds, recurringEventId, applyToSeries } = req.body;
     const db = getFirestore();
 
     if (!eventId || !calendarId) {
@@ -135,19 +153,33 @@ router.post('/events/assignments/:userId', async (req, res) => {
     }
 
     const startDate = getDateOnly(start) || getDateOnly(end) || null;
-    const docId = `${calendarId}__${eventId}`;
+    const seriesMode = !!applyToSeries && !!recurringEventId;
+    const docId = seriesMode
+      ? `${calendarId}__series__${recurringEventId}`
+      : `${calendarId}__${eventId}`;
 
     await db.collection(ASSIGNMENTS_COLLECTION).doc(docId).set({
       userId,
       eventId,
+      recurringEventId: recurringEventId || null,
       calendarId,
       summary: summary || '',
       start: start || null,
       end: end || null,
       startDate,
       profileIds: Array.isArray(profileIds) ? profileIds : [],
+      applyToSeries: seriesMode,
       updatedAt: new Date().toISOString()
     }, { merge: true });
+
+    // Notify via WebSocket
+    if (req.app.locals.broadcastToUser) {
+      req.app.locals.broadcastToUser(userId, {
+        type: 'update',
+        scope: 'calendar',
+        action: 'event-assignment-updated'
+      });
+    }
 
     res.json({ success: true });
   } catch (error) {

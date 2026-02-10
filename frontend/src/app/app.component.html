@@ -1,71 +1,54 @@
 <div class="app-container" *ngIf="authService.user$ | async as user; else loginView">
-  <nav class="sidebar">
+  <!-- Mobile Menu Toggle -->
+  <button class="mobile-menu-toggle" (click)="toggleMobileMenu()" aria-label="Toggle menu">
+    <span class="hamburger" [class.open]="mobileMenuOpen"></span>
+  </button>
+
+  <!-- Mobile Overlay -->
+  <div class="mobile-overlay" [class.active]="mobileMenuOpen" (click)="closeMobileMenu()"></div>
+
+  <nav class="sidebar" [class.mobile-open]="mobileMenuOpen" [class.collapsed]="sidebarCollapsed">
     <div class="logo">
       <h1>🏠 Family Hub</h1>
+      <button class="sidebar-toggle" (click)="toggleSidebar()" aria-label="Toggle sidebar">
+        {{ sidebarCollapsed ? '›' : '‹' }}
+      </button>
     </div>
     
-    <div class="user-info">
-      <img [src]="user.picture" alt="Profile" class="user-avatar" />
-      <div class="user-details">
-        <p class="user-name">{{ user.name }}</p>
-        <p class="user-email">{{ user.email }}</p>
+    <div class="user-section">
+      <div class="user-profile">
+        <img [src]="user.picture" alt="Profile" class="user-avatar" />
+        <div class="user-details">
+          <p class="user-name">{{ user.name }}</p>
+          <p class="user-email">{{ user.email }}</p>
+        </div>
+      </div>
+      
+      <div class="user-controls">
+        <button class="pin-toggle" (click)="pinUnlocked ? lockPin() : unlockPin()" [disabled]="pinUnlocking" title="Toggle admin lock">
+          <span class="pin-icon">{{ pinUnlocked ? '🔓' : '🔒' }}</span>
+          <span class="pin-label">{{ pinUnlocked ? 'Unlocked' : 'Locked' }}</span>
+        </button>
+        
+        <button class="logout-btn" (click)="authService.logout()" title="Logout">
+          <span>🚪</span>
+          <span class="logout-label">Logout</span>
+        </button>
       </div>
     </div>
 
     <ul class="nav-menu">
-      <li>
-        <a routerLink="/calendar" routerLinkActive="active">
-          <span class="icon">📅</span>
-          <span>Calendar</span>
-        </a>
-      </li>
-      <li>
-        <a routerLink="/profiles" routerLinkActive="active">
-          <span class="icon">👨‍👩‍👧‍👦</span>
-          <span>Profiles</span>
-        </a>
-      </li>
-      <li>
-        <a routerLink="/tasks" routerLinkActive="active">
-          <span class="icon">✅</span>
-          <span>Tasks</span>
-        </a>
-      </li>
-      <li>
-        <a routerLink="/prizes" routerLinkActive="active">
-          <span class="icon">🏆</span>
-          <span>Rewards</span>
-        </a>
-      </li>
-      <li>
-        <a routerLink="/meals" routerLinkActive="active">
-          <span class="icon">🍽️</span>
-          <span>Meal Planner</span>
-        </a>
-      </li>
-      <li>
-        <a routerLink="/inventory" routerLinkActive="active">
-          <span class="icon">🛒</span>
-          <span>Inventory</span>
-        </a>
-      </li>
-      <li>
-        <a routerLink="/shopping" routerLinkActive="active">
-          <span class="icon">🧾</span>
-          <span>Shopping List</span>
-        </a>
-      </li>
-      <li>
-        <a routerLink="/settings" routerLinkActive="active">
-          <span class="icon">⚙️</span>
-          <span>Settings</span>
+      <li *ngFor="let item of navItems" [class.hidden]="!isFeatureEnabled(item.key)">
+        <a
+          [routerLink]="item.route"
+          routerLinkActive="active"
+          (click)="closeMobileMenu()"
+          [attr.title]="sidebarCollapsed ? item.label : null">
+          <span class="icon">{{ item.icon }}</span>
+          <span class="label">{{ item.label }}</span>
         </a>
       </li>
     </ul>
-
-    <button class="logout-btn" (click)="authService.logout()">
-      <span>🚪</span> Logout
-    </button>
   </nav>
 
   <main class="main-content">

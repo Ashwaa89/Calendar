@@ -1,9 +1,10 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { ProfileService,Profile } from '../services/profile.service';
+import { WebSocketService } from '../services/websocket.service';
+import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-profiles',
@@ -12,10 +13,11 @@ import { ProfileService,Profile } from '../services/profile.service';
   templateUrl: './profiles.component.html',
   styleUrls: ['./profiles.component.scss']
 })
-export class ProfilesComponent implements OnInit {
+export class ProfilesComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private profileService = inject(ProfileService);
-  private router = inject(Router);
+  private websocket = inject(WebSocketService);
+  private destroy$ = new Subject<void>();
 
   profiles: Profile[] = [];
   loading = false;
@@ -40,13 +42,29 @@ export class ProfilesComponent implements OnInit {
   avatars = [
     '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐻‍❄️', '🐨', '🐯', '🦁',
     '🐮', '🐷', '🐸', '🐵', '🦄', '🐔', '🐧', '🐦', '🦉', '🦆', '🦢', '🦋',
-    '🐞', '🐢', '🐙', '🐠', '🐬', '🦭', '🐳', '🦒', '🦓', '🦥', '🦦', '🦘'
+    '🐞', '🐢', '🐙', '🐠', '🐬', '🦭', '🐳', '🦒', '🦓', '🦥', '🦦', '🦘',
+    '🦝', '🦨', '🦡', '🦫', '🦚', '🦜', '🦩', '🐿️', '🦔', '🐾', '🐝', '🪲',
+    '🦋', '🪼', '🦈', '🐊', '🐢', '🦎', '🐍', '🦖', '🦕', '🦌', '🦬', '🦣',
+    '🐐', '🐑', '🦙', '🦘', '🦥', '🦦', '🦡', '🦏', '🦛', '🐪', '🐫', '🦒'
   ];
 
   colors = ['#667eea', '#764ba2', '#ff6b6b', '#f06595', '#fcc419', '#40c057', '#20c997', '#4dabf7', '#3bc9db', '#845ef7', '#ff922b', '#94d82d'];
 
   ngOnInit() {
     this.loadProfiles();
+
+    this.websocket.updates$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(message => {
+        if (message.scope === 'profiles') {
+          this.loadProfiles();
+        }
+      });
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   loadProfiles() {
@@ -107,9 +125,12 @@ export class ProfilesComponent implements OnInit {
     this.editProfile.color = color;
   }
 
-  addProfile() {
+  async addProfile() {
     const user = this.authService.getCurrentUser();
     if (!user || !this.newProfile.name) return;
+
+    const pinVerified = await this.authService.requirePinFor('profiles:edit');
+    if (!pinVerified) return;
 
     this.loading = true;
     const profileData: any = {
@@ -134,8 +155,11 @@ export class ProfilesComponent implements OnInit {
     });
   }
 
-  updateProfile() {
+  async updateProfile() {
     if (!this.editingProfileId || !this.editProfile.name) return;
+
+    const pinVerified = await this.authService.requirePinFor('profiles:edit');
+    if (!pinVerified) return;
 
     const updates: any = {
       name: this.editProfile.name,
@@ -165,8 +189,11 @@ export class ProfilesComponent implements OnInit {
     });
   }
 
-  deleteProfile(profileId: string) {
+  async deleteProfile(profileId: string) {
     if (!confirm('Are you sure you want to delete this profile?')) return;
+
+    const pinVerified = await this.authService.requirePinFor('profiles:edit');
+    if (!pinVerified) return;
 
     this.profileService.deleteProfile(profileId).subscribe({
       next: () => {
@@ -178,7 +205,4 @@ export class ProfilesComponent implements OnInit {
     });
   }
 
-  viewTasks(profileId: string) {
-    this.router.navigate(['/tasks', profileId]);
-  }
 }

@@ -9,75 +9,104 @@
     </button>
   </div>
 
-  <div class="tasks-grid">
-    <div class="task-card" *ngFor="let task of catalogTasks">
-      <div class="task-header">
-        <h3>{{ task.title }}</h3>
-        <div class="task-stars">
-          <span class="star-icon">⭐</span>
-          <span>{{ task.stars }}</span>
+  <div class="tasks-sections" *ngIf="profiles.length > 0; else noProfiles">
+    <section class="available-section">
+      <div class="section-header">
+        <h2>Available Tasks</h2>
+        <p>Assign tasks to a profile. Quantity decreases when a task is pending.</p>
+      </div>
+
+      <div class="available-grid" *ngIf="catalogTasks.length > 0">
+        <div class="task-card" *ngFor="let task of catalogTasks">
+          <div class="task-header">
+            <h4>{{ task.title }}</h4>
+            <div class="task-stars">
+              <span class="star-icon">⭐</span>
+              <span>{{ task.stars }}</span>
+            </div>
+          </div>
+
+          <p class="task-quantity">
+            Available: {{ getAvailableQuantity(task) }} / {{ task.quantity || 1 }}
+          </p>
+
+          <p class="task-description" *ngIf="task.description">
+            {{ task.description }}
+          </p>
+
+          <div class="task-frequency" *ngIf="task.frequency">
+            <span class="frequency-icon">🔄</span>
+            <span>Repeats every {{ task.frequency }} {{ task.frequencyUnit }}</span>
+          </div>
+
+          <div class="assign-row">
+            <div class="assign-buttons">
+              <button
+                class="assign-btn"
+                *ngFor="let profile of profiles"
+                (click)="assignTaskToProfile(profile.id, task)"
+                [disabled]="!isTaskAvailableForProfile(profile.id, task)"
+                [style.borderColor]="profile.color || '#667eea'">
+                <span class="avatar" [style.borderColor]="profile.color || '#667eea'">{{ profile.avatar }}</span>
+                <span>{{ getPendingAssignments(profile.id, task.id) > 0 ? 'Pending' : 'Assign' }}</span>
+                <span class="assign-stars">⭐ {{ profile.stars }}</span>
+              </button>
+            </div>
+            <div class="action-buttons">
+              <button class="action-btn edit" (click)="openEditModal(task)">✏️</button>
+              <button class="action-btn delete" (click)="deleteTask(task.id)">🗑️</button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <p class="task-description" *ngIf="task.description">
-        {{ task.description }}
-      </p>
+      <div class="task-card add-card" (click)="openAddModal()" *ngIf="catalogTasks.length === 0">
+        <div class="add-icon">+</div>
+        <p>Add your first task</p>
+      </div>
+    </section>
 
-      <div class="task-frequency" *ngIf="task.frequency">
-        <span class="frequency-icon">🔄</span>
-        <span>Repeats every {{ task.frequency }} {{ task.frequencyUnit }}</span>
+    <section class="assigned-section">
+      <div class="section-header">
+        <h2>Assigned Tasks</h2>
+        <p>Profiles with their assigned tasks listed horizontally.</p>
       </div>
 
-      <button
-        class="assign-btn"
-        (click)="openAssignModal(task)">
-        Assign to Profile
-      </button>
-    </div>
+      <div class="assigned-list">
+        <div class="profile-row" *ngFor="let profile of profiles">
+          <div class="profile-pill" [style.borderColor]="profile.color || '#667eea'">
+            <span class="avatar" [style.borderColor]="profile.color || '#667eea'">{{ profile.avatar }}</span>
+            <div>
+              <h3>{{ profile.name }}</h3>
+              <p *ngIf="profile.age">{{ profile.age }} years old</p>
+            </div>
+            <div class="profile-stars">⭐ {{ profile.stars }}</div>
+          </div>
 
-    <div class="task-card add-card" *ngIf="catalogTasks.length === 0">
-      <div class="add-icon">+</div>
-      <p>Add tasks in the Tasks page for a profile first</p>
-    </div>
+          <div class="assigned-row" *ngIf="getAssignments(profile.id).length > 0">
+            <div class="assigned-card" *ngFor="let task of getAssignments(profile.id)">
+              <div class="assigned-title">{{ task.title }}</div>
+              <div class="assigned-meta">⭐ {{ task.stars }}</div>
+              <div class="assigned-status" *ngIf="!task.completed">Pending</div>
+              <div class="assigned-status done" *ngIf="task.completed">Completed</div>
+            </div>
+          </div>
+          <div class="empty-state" *ngIf="getAssignments(profile.id).length === 0">
+            No tasks assigned yet.
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
+
+  <ng-template #noProfiles>
+    <div class="empty-state">
+      Create a profile in Settings to start assigning tasks.
+    </div>
+  </ng-template>
 
   <div class="loading-overlay" *ngIf="loading">
     <div class="spinner"></div>
-  </div>
-
-  <!-- Assign Task Modal -->
-  <div class="modal-overlay" *ngIf="showAssignModal" (click)="closeAssignModal()">
-    <div class="modal-content" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h2>Assign Task</h2>
-        <button class="close-btn" (click)="closeAssignModal()">×</button>
-      </div>
-
-      <div class="modal-body">
-        <p class="modal-task" *ngIf="taskToAssign">{{ taskToAssign.title }}</p>
-        <div class="assigned-note" *ngIf="taskToAssign && modalProfileId && isAssigned(taskToAssign.id)">
-          This task is already assigned to the selected profile.
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn-secondary" (click)="closeAssignModal()">Cancel</button>
-        <button class="btn-primary" (click)="confirmAssign()" [disabled]="!modalProfileId">
-          Assign Task
-        </button>
-      </div>
-
-      <div class="profile-strip">
-        <button
-          class="profile-pill"
-          *ngFor="let profile of profiles"
-          [class.selected]="modalProfileId === profile.id"
-          (click)="selectModalProfile(profile.id)">
-          <span class="avatar">{{ profile.avatar }}</span>
-          <span class="name">{{ profile.name }}</span>
-        </button>
-      </div>
-    </div>
   </div>
 
   <!-- Add Task Modal -->
@@ -117,6 +146,15 @@
         </div>
 
         <div class="form-group">
+          <label>Quantity</label>
+          <input
+            type="number"
+            [(ngModel)]="newTask.quantity"
+            min="1"
+            class="form-input" />
+        </div>
+
+        <div class="form-group">
           <label>
             <input type="checkbox" [(ngModel)]="newTask.frequency" [ngModelOptions]="{standalone: true}"
                    (change)="newTask.frequency = newTask.frequency ? 1 : null" />
@@ -148,6 +186,88 @@
         <button class="btn-secondary" (click)="closeAddModal()">Cancel</button>
         <button class="btn-primary" (click)="addTask()" [disabled]="!newTask.title">
           Add Task
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Task Modal -->
+  <div class="modal-overlay" *ngIf="showEditModal" (click)="closeEditModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Edit Task</h2>
+        <button class="close-btn" (click)="closeEditModal()">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Task Title</label>
+          <input
+            type="text"
+            [(ngModel)]="editTask.title"
+            placeholder="e.g., Clean your room"
+            class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label>Description (optional)</label>
+          <textarea
+            [(ngModel)]="editTask.description"
+            placeholder="Additional details..."
+            class="form-input"
+            rows="3"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Stars Reward</label>
+          <input
+            type="number"
+            [(ngModel)]="editTask.stars"
+            min="1"
+            class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label>Quantity</label>
+          <input
+            type="number"
+            [(ngModel)]="editTask.quantity"
+            min="1"
+            class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label>
+            <input type="checkbox" [(ngModel)]="editTask.frequency" [ngModelOptions]="{standalone: true}"
+                   (change)="editTask.frequency = editTask.frequency ? 1 : null" />
+            Recurring Task
+          </label>
+        </div>
+
+        <div class="form-row" *ngIf="editTask.frequency !== null">
+          <div class="form-group">
+            <label>Repeat Every</label>
+            <input
+              type="number"
+              [(ngModel)]="editTask.frequency"
+              min="1"
+              class="form-input" />
+          </div>
+          <div class="form-group">
+            <label>Unit</label>
+            <select [(ngModel)]="editTask.frequencyUnit" class="form-input">
+              <option value="hours">Hours</option>
+              <option value="days">Days</option>
+              <option value="weeks">Weeks</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeEditModal()">Cancel</button>
+        <button class="btn-primary" (click)="updateTask()" [disabled]="!editTask.title">
+          Save Changes
         </button>
       </div>
     </div>

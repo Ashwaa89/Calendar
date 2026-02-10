@@ -10,19 +10,23 @@
     "dev:frontend": "cd frontend && ng serve",
     "build": "cd frontend && ng build",
     "start:prod": "node api/server.js",
-    "vercel-build": "cd frontend && npm install && ng build"
+    "vercel-build": "cd frontend && npm install && ng build",
+    "deploy:gcp": "gcloud run deploy family-hub --source . --region us-central1 --allow-unauthenticated",
+    "deploy:gcp:set-env": "gcloud run services update family-hub --region us-central1 --set-env-vars NODE_ENV=production"
   },
   "dependencies": {
-    "express": "^4.18.2",
+    "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
     "firebase-admin": "^12.0.0",
     "googleapis": "^128.0.0",
-    "cookie-parser": "^1.4.6",
-    "dotenv": "^16.3.1"
+    "socket.io-client": "^4.8.3",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2",
     "concurrently": "^8.2.2",
-    "kill-port": "^2.0.1"
+    "kill-port": "^2.0.1",
+    "nodemon": "^3.0.2"
   }
 }

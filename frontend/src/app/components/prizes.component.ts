@@ -1,8 +1,10 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
 import { ProfileService, Prize, Profile } from '../services/profile.service';
+import { WebSocketService } from '../services/websocket.service';
+import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-prizes',
@@ -11,9 +13,11 @@ import { ProfileService, Prize, Profile } from '../services/profile.service';
   templateUrl: './prizes.component.html',
   styleUrls: ['./prizes.component.scss']
 })
-export class PrizesComponent implements OnInit {
+export class PrizesComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private profileService = inject(ProfileService);
+  private websocket = inject(WebSocketService);
+  private destroy$ = new Subject<void>();
 
   prizes: Prize[] = [];
   profiles: Profile[] = [];
@@ -35,6 +39,22 @@ export class PrizesComponent implements OnInit {
   ngOnInit() {
     this.loadPrizes();
     this.loadProfiles();
+
+    this.websocket.updates$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(message => {
+        if (message.scope === 'prizes') {
+          this.loadPrizes();
+        }
+        if (message.scope === 'profiles') {
+          this.loadProfiles();
+        }
+      });
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   loadPrizes() {
@@ -86,9 +106,12 @@ export class PrizesComponent implements OnInit {
     this.newPrize.icon = icon;
   }
 
-  addPrize() {
+  async addPrize() {
     const user = this.authService.getCurrentUser();
     if (!user || !this.newPrize.title) return;
+
+    const pinVerified = await this.authService.requirePinFor('prizes:manage');
+    if (!pinVerified) return;
 
     this.loading = true;
     this.profileService.createPrize({
@@ -133,8 +156,11 @@ export class PrizesComponent implements OnInit {
     return profile.stars >= prize.starCost;
   }
 
-  redeemPrize() {
+  async redeemPrize() {
     if (!this.selectedPrize || !this.selectedProfileId) return;
+
+    const pinVerified = await this.authService.requirePinFor('prizes:manage');
+    if (!pinVerified) return;
 
     this.profileService.redeemPrize(this.selectedPrize.id, this.selectedProfileId).subscribe({
       next: (response) => {
@@ -149,8 +175,11 @@ export class PrizesComponent implements OnInit {
     });
   }
 
-  deletePrize(prizeId: string) {
+  async deletePrize(prizeId: string) {
     if (!confirm('Are you sure you want to delete this prize?')) return;
+
+    const pinVerified = await this.authService.requirePinFor('prizes:manage');
+    if (!pinVerified) return;
 
     this.profileService.deletePrize(prizeId).subscribe({
       next: () => {

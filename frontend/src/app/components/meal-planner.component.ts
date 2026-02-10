@@ -1,8 +1,10 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
 import { MealService, Meal, Ingredient } from '../services/meal.service';
+import { WebSocketService } from '../services/websocket.service';
+import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-meal-planner',
@@ -11,9 +13,11 @@ import { MealService, Meal, Ingredient } from '../services/meal.service';
   templateUrl: './meal-planner.component.html',
   styleUrls: ['./meal-planner.component.scss']
 })
-export class MealPlannerComponent implements OnInit {
+export class MealPlannerComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private mealService = inject(MealService);
+  private websocket = inject(WebSocketService);
+  private destroy$ = new Subject<void>();
 
   meals: Meal[] = [];
   loading = false;
@@ -47,6 +51,19 @@ export class MealPlannerComponent implements OnInit {
   ngOnInit() {
     this.generateWeekDays();
     this.loadMeals();
+
+    this.websocket.updates$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(message => {
+        if (message.scope === 'meals') {
+          this.loadMeals();
+        }
+      });
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   generateWeekDays() {
@@ -113,8 +130,7 @@ export class MealPlannerComponent implements OnInit {
     const user = this.authService.getCurrentUser();
     if (!user || !this.newMeal.title) return;
 
-    // Require PIN for adding meals
-    const pinVerified = await this.authService.promptForPin();
+    const pinVerified = await this.authService.requirePinFor('meals:manage');
     if (!pinVerified) return;
 
     this.loading = true;
@@ -153,8 +169,7 @@ export class MealPlannerComponent implements OnInit {
   async deleteMeal(mealId: string) {
     if (!confirm('Delete this meal?')) return;
 
-    // Require PIN for deleting meals
-    const pinVerified = await this.authService.promptForPin();
+    const pinVerified = await this.authService.requirePinFor('meals:manage');
     if (!pinVerified) return;
 
     this.mealService.deleteMeal(mealId).subscribe({

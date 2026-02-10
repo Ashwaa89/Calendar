@@ -1,9 +1,11 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ProfileService, Task, Profile, TaskCatalogItem } from '../services/profile.service';
 import { AuthService } from '../services/auth.service';
+import { WebSocketService } from '../services/websocket.service';
+import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-tasks',
@@ -12,11 +14,13 @@ import { AuthService } from '../services/auth.service';
   templateUrl: './tasks.component.html',
   styleUrls: ['./tasks.component.scss']
 })
-export class TasksComponent implements OnInit {
+export class TasksComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private profileService = inject(ProfileService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private websocket = inject(WebSocketService);
+  private destroy$ = new Subject<void>();
 
   profileId = '';
   profile: Profile | null = null;
@@ -31,6 +35,7 @@ export class TasksComponent implements OnInit {
     title: '',
     description: '',
     stars: 1,
+    quantity: 1,
     frequency: null as number | null,
     frequencyUnit: 'days' as 'hours' | 'days' | 'weeks',
     assignToProfile: true
@@ -49,6 +54,19 @@ export class TasksComponent implements OnInit {
       this.profileId = params['profileId'];
       this.loadTasks();
     });
+
+    this.websocket.updates$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(message => {
+        if (message.scope === 'tasks') {
+          this.loadTasks();
+        }
+      });
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   loadTasks() {
@@ -90,6 +108,7 @@ export class TasksComponent implements OnInit {
       title: '',
       description: '',
       stars: 1,
+      quantity: 1,
       frequency: null,
       frequencyUnit: 'days',
       assignToProfile: true
@@ -121,8 +140,7 @@ export class TasksComponent implements OnInit {
     const user = this.authService.getCurrentUser();
     if (!user || !this.newTask.title) return;
 
-    // Require PIN for adding tasks
-    const pinVerified = await this.authService.promptForPin();
+    const pinVerified = await this.authService.requirePinFor('tasks:add');
     if (!pinVerified) return;
 
     this.loading = true;
@@ -131,6 +149,7 @@ export class TasksComponent implements OnInit {
       title: this.newTask.title,
       description: this.newTask.description,
       stars: this.newTask.stars,
+      quantity: this.newTask.quantity,
       frequencyUnit: this.newTask.frequencyUnit
     };
     if (this.newTask.assignToProfile) {
@@ -156,8 +175,11 @@ export class TasksComponent implements OnInit {
     });
   }
 
-  updateTask() {
+  async updateTask() {
     if (!this.editingTaskId || !this.editTask.title) return;
+
+    const pinVerified = await this.authService.requirePinFor('tasks:edit');
+    if (!pinVerified) return;
 
     const updates: any = {
       title: this.editTask.title,
@@ -190,8 +212,7 @@ export class TasksComponent implements OnInit {
   async completeTask(task: Task) {
     if (!this.isTaskAvailable(task)) return;
 
-    // Require PIN for completing tasks
-    const pinVerified = await this.authService.promptForPin();
+    const pinVerified = await this.authService.requirePinFor('tasks:complete');
     if (!pinVerified) return;
 
     this.profileService.completeTask(task.id).subscribe({
@@ -205,8 +226,11 @@ export class TasksComponent implements OnInit {
     });
   }
 
-  deleteTask(taskId: string) {
+  async deleteTask(taskId: string) {
     if (!confirm('Are you sure you want to delete this task?')) return;
+
+    const pinVerified = await this.authService.requirePinFor('tasks:delete');
+    if (!pinVerified) return;
 
     this.profileService.deleteTask(taskId).subscribe({
       next: () => {
@@ -219,7 +243,10 @@ export class TasksComponent implements OnInit {
     });
   }
 
-  assignTask(task: TaskCatalogItem) {
+  async assignTask(task: TaskCatalogItem) {
+    const pinVerified = await this.authService.requirePinFor('tasks:assign');
+    if (!pinVerified) return;
+
     this.profileService.assignTask(this.profileId, task.id).subscribe({
       next: () => this.loadTasks(),
       error: (error) => {
@@ -228,7 +255,10 @@ export class TasksComponent implements OnInit {
     });
   }
 
-  unassignTask(task: Task) {
+  async unassignTask(task: Task) {
+    const pinVerified = await this.authService.requirePinFor('tasks:assign');
+    if (!pinVerified) return;
+
     this.profileService.unassignTask(task.id).subscribe({
       next: () => {
         this.tasks = this.tasks.filter(t => t.id !== task.id);

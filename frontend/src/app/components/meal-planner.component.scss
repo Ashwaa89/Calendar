@@ -1,5 +1,5 @@
 .meal-planner-container {
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--panel-bg);
   border-radius: 24px;
   padding: 2rem;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
@@ -69,7 +69,7 @@
 
   .meal-type-header {
     height: 60px;
-    background: white;
+    background: var(--card-bg);
   }
 
   .meal-type-cell {
@@ -96,7 +96,7 @@
 
   .day-header {
     height: 60px;
-    background: white;
+    background: var(--card-bg);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -110,7 +110,7 @@
   }
 
   .meal-cell {
-    background: white;
+    background: var(--card-bg);
     padding: 0.75rem;
     height: 120px;
     position: relative;
@@ -126,7 +126,7 @@
       .meal-title {
         font-size: 0.875rem;
         font-weight: 600;
-        color: #333;
+        color: var(--header-text);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -136,7 +136,7 @@
       .meal-ingredients {
         margin-top: 0.35rem;
         font-size: 0.75rem;
-        color: #666;
+        color: var(--body-text);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -149,7 +149,7 @@
         width: 20px;
         height: 20px;
         border: none;
-        background: rgba(255, 255, 255, 0.9);
+        background: color-mix(in srgb, var(--card-bg) 90%, transparent);
         border-radius: 50%;
         font-size: 1rem;
         color: #c33;
@@ -202,7 +202,7 @@
 }
 
 .modal-content {
-  background: white;
+  background: var(--panel-bg);
   border-radius: 16px;
   width: 90%;
   max-width: 500px;
@@ -282,15 +282,15 @@
 
       .add-ingredient-btn {
         padding: 0.6rem 0.9rem;
-        background: #f5f5f5;
+        background: var(--section-bg);
         border: none;
         border-radius: 8px;
         font-weight: 600;
         cursor: pointer;
-        transition: background 0.2s ease;
+        transition: opacity 0.2s ease;
 
         &:hover {
-          background: #e0e0e0;
+          opacity: 0.8;
         }
       }
     }
@@ -305,7 +305,7 @@
         justify-content: space-between;
         align-items: center;
         padding: 0.5rem 0.75rem;
-        background: #fafafa;
+        background: var(--section-bg);
         border: 1px solid #eee;
         border-radius: 8px;
         font-size: 0.875rem;
@@ -339,8 +339,8 @@
     cursor: pointer;
 
     &.btn-secondary {
-      background: #f5f5f5;
-      color: #666;
+      background: var(--section-bg);
+      color: var(--body-text);
     }
 
     &.btn-primary {
@@ -361,7 +361,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.9);
+  background: color-mix(in srgb, var(--panel-bg) 90%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -370,8 +370,8 @@
   .spinner {
     width: 50px;
     height: 50px;
-    border: 4px solid rgba(102, 126, 234, 0.2);
-    border-top-color: #667eea;
+    border: 4px solid color-mix(in srgb, var(--accent-color) 20%, transparent);
+    border-top-color: var(--accent-color);
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
@@ -406,4 +406,62 @@
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+// Mobile Responsive Styles
+@media (max-width: 768px) {
+  .meal-planner-container {
+    padding: 1rem;
+    border-radius: 16px;
+  }
+
+  .page-header {
+    h1 {
+      font-size: 1.5rem;
+    }
+  }
+
+  .meal-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .modal-content {
+    width: 95%;
+  }
+
+  .modal-header {
+    padding: 1rem;
+
+    h2 {
+      font-size: 1.25rem;
+    }
+  }
+
+  .modal-body {
+    padding: 1rem;
+
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .modal-footer {
+    padding: 1rem;
+    flex-direction: column;
+
+    button {
+      width: 100%;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .meal-planner-container {
+    padding: 0.75rem;
+  }
+
+  .page-header h1 {
+    font-size: 1.25rem;
+  }
 }

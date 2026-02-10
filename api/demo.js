@@ -1,5 +1,6 @@
 // Demo mode API endpoints - no Firebase required
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
 
 const nowIso = () => new Date().toISOString();
@@ -11,12 +12,78 @@ const mergeQuantities = (map, name, unit, qty) => {
   map.set(key, existing);
 };
 
+const PIN_REGEX = /^\d{4}$/;
+let demoAdminPinSalt = null;
+let demoAdminPinHash = null;
+
+const createPinHash = (pin) => {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(pin, salt, 64).toString('hex');
+  return { salt, hash };
+};
+
+const verifyPinHash = (pin, salt, hash) => {
+  const hashed = crypto.scryptSync(pin, salt, 64);
+  const stored = Buffer.from(hash, 'hex');
+  if (stored.length !== hashed.length) return false;
+  return crypto.timingSafeEqual(stored, hashed);
+};
+
 // Mock user data
 const mockUser = {
   id: 'demo-user-123',
   email: 'demo@example.com',
   name: 'Demo User',
   picture: '👤'
+};
+
+const defaultFeatures = [
+  'overview',
+  'calendar',
+  'profiles',
+  'tasks',
+  'prizes',
+  'meals',
+  'inventory',
+  'shopping',
+  'help',
+  'settings'
+];
+let demoEnabledFeatures = [...defaultFeatures];
+let demoTheme = {
+  name: 'Aurora',
+  backgroundType: 'gradient',
+  backgroundStart: '#667eea',
+  backgroundEnd: '#764ba2',
+  backgroundAngle: 135,
+  panelBackground: '#ffffff',
+  cardBackground: '#ffffff',
+  sectionBackground: '#ffffff',
+  sectionText: '#333333',
+  sidebarBackground: 'rgba(255, 255, 255, 0.95)',
+  headerText: '#333333',
+  bodyText: '#666666',
+  accent: '#667eea'
+};
+let demoPinSettings = {
+  autoLockMinutes: 30,
+  requiredActions: [
+    'tasks:add',
+    'tasks:complete',
+    'tasks:edit',
+    'tasks:delete',
+    'tasks:assign',
+    'profiles:edit',
+    'prizes:manage',
+    'inventory:manage',
+    'meals:manage',
+    'shopping:manage',
+    'calendar:assign',
+    'settings:calendar',
+    'settings:features',
+    'settings:theme',
+    'settings:security'
+  ]
 };
 
 // Mock profiles
@@ -27,9 +94,9 @@ const mockProfiles = [
 
 // Mock task catalog
 const mockTaskCatalog = [
-  { id: 'task-1', userId: 'demo-user-123', title: 'Clean Your Room', description: 'Make bed and organize toys', stars: 5, frequency: 1, frequencyUnit: 'days', createdAt: nowIso(), updatedAt: nowIso() },
-  { id: 'task-2', userId: 'demo-user-123', title: 'Homework', description: 'Complete daily homework', stars: 10, frequency: 1, frequencyUnit: 'days', createdAt: nowIso(), updatedAt: nowIso() },
-  { id: 'task-3', userId: 'demo-user-123', title: 'Brush Teeth', description: 'Morning and night', stars: 3, frequency: 12, frequencyUnit: 'hours', createdAt: nowIso(), updatedAt: nowIso() }
+  { id: 'task-1', userId: 'demo-user-123', title: 'Clean Your Room', description: 'Make bed and organize toys', stars: 5, quantity: 1, frequency: 1, frequencyUnit: 'days', createdAt: nowIso(), updatedAt: nowIso() },
+  { id: 'task-2', userId: 'demo-user-123', title: 'Homework', description: 'Complete daily homework', stars: 10, quantity: 1, frequency: 1, frequencyUnit: 'days', createdAt: nowIso(), updatedAt: nowIso() },
+  { id: 'task-3', userId: 'demo-user-123', title: 'Brush Teeth', description: 'Morning and night', stars: 3, quantity: 2, frequency: 12, frequencyUnit: 'hours', createdAt: nowIso(), updatedAt: nowIso() }
 ];
 
 // Mock task assignments
@@ -101,20 +168,56 @@ const mockShoppingList = [
 // Admin PIN verification
 router.post('/auth/verify-admin-pin', (req, res) => {
   const { pin } = req.body;
-  const ADMIN_PIN = '1234';
-  res.json({ success: pin === ADMIN_PIN });
+  if (!demoAdminPinHash || !demoAdminPinSalt) {
+    return res.json({ success: false, requiresSetup: true });
+  }
+  const isValid = PIN_REGEX.test(String(pin || ''))
+    && verifyPinHash(String(pin), demoAdminPinSalt, demoAdminPinHash);
+  res.json({ success: isValid, requiresSetup: false });
+});
+
+router.post('/auth/set-admin-pin', (req, res) => {
+  const { pin } = req.body;
+  if (!PIN_REGEX.test(String(pin || ''))) {
+    return res.status(400).json({ error: 'PIN must be a 4-digit number' });
+  }
+  if (demoAdminPinHash) {
+    return res.status(409).json({ error: 'Admin PIN already set' });
+  }
+  const { salt, hash } = createPinHash(String(pin));
+  demoAdminPinSalt = salt;
+  demoAdminPinHash = hash;
+  res.json({ success: true });
 });
 
 router.get('/auth/demo-login', (req, res) => {
-  res.json({ 
-    success: true, 
-    user: mockUser,
-    token: 'demo-token-12345' 
+  res.json({
+    success: true,
+    user: { ...mockUser, adminPinSet: !!demoAdminPinHash, enabledFeatures: demoEnabledFeatures, theme: demoTheme, pinSettings: demoPinSettings },
+    token: 'demo-token-12345'
   });
 });
 
 router.post('/auth/verify-token', (req, res) => {
-  res.json({ success: true, user: mockUser });
+  res.json({ success: true, user: { ...mockUser, adminPinSet: !!demoAdminPinHash, enabledFeatures: demoEnabledFeatures, theme: demoTheme, pinSettings: demoPinSettings } });
+});
+
+router.post('/auth/set-enabled-features', (req, res) => {
+  const { enabledFeatures } = req.body;
+  demoEnabledFeatures = Array.isArray(enabledFeatures) ? enabledFeatures : [];
+  res.json({ success: true, enabledFeatures: demoEnabledFeatures });
+});
+
+router.post('/auth/set-theme', (req, res) => {
+  const { theme } = req.body;
+  demoTheme = { ...demoTheme, ...(theme || {}) };
+  res.json({ success: true, theme: demoTheme });
+});
+
+router.post('/auth/set-pin-settings', (req, res) => {
+  const { pinSettings } = req.body;
+  demoPinSettings = { ...demoPinSettings, ...(pinSettings || {}) };
+  res.json({ success: true, pinSettings: demoPinSettings });
 });
 
 // Profile endpoints
@@ -316,7 +419,8 @@ router.delete('/prizes/:prizeId', (req, res) => {
 
 // Calendar endpoints
 router.get('/calendar/google-calendars/:userId', (req, res) => {
-  res.json({ success: true, calendars: mockCalendars });
+  const selectedCalendars = mockCalendars.filter(c => c.selected).map(c => c.id);
+  res.json({ success: true, calendars: mockCalendars, selectedCalendars });
 });
 
 router.post('/calendar/events/:userId', (req, res) => {
@@ -324,6 +428,11 @@ router.post('/calendar/events/:userId', (req, res) => {
 });
 
 router.post('/calendar/save-selected/:userId', (req, res) => {
+  const { selectedCalendars } = req.body;
+  const selectedSet = new Set(Array.isArray(selectedCalendars) ? selectedCalendars : []);
+  mockCalendars.forEach(calendar => {
+    calendar.selected = selectedSet.has(calendar.id);
+  });
   res.json({ success: true });
 });
 
@@ -335,6 +444,7 @@ router.get('/calendar/events/assignments/:userId', (req, res) => {
 
   const assignments = mockEventAssignments.filter(a => {
     if (a.userId !== userId) return false;
+    if (a.applyToSeries) return true;
     if (startDate && a.startDate < startDate) return false;
     if (endDate && a.startDate > endDate) return false;
     return true;
@@ -345,9 +455,12 @@ router.get('/calendar/events/assignments/:userId', (req, res) => {
 
 router.post('/calendar/events/assignments/:userId', (req, res) => {
   const { userId } = req.params;
-  const { eventId, calendarId, start, end, summary, profileIds } = req.body;
+  const { eventId, calendarId, start, end, summary, profileIds, recurringEventId, applyToSeries } = req.body;
 
-  const docId = `${calendarId}__${eventId}`;
+  const seriesMode = !!applyToSeries && !!recurringEventId;
+  const docId = seriesMode
+    ? `${calendarId}__series__${recurringEventId}`
+    : `${calendarId}__${eventId}`;
   const startDate = start ? new Date(start).toISOString().split('T')[0] : (end ? new Date(end).toISOString().split('T')[0] : null);
   const index = mockEventAssignments.findIndex(a => a.id === docId);
 
@@ -355,12 +468,14 @@ router.post('/calendar/events/assignments/:userId', (req, res) => {
     id: docId,
     userId,
     eventId,
+    recurringEventId: recurringEventId || null,
     calendarId,
     summary: summary || '',
     start: start || null,
     end: end || null,
     startDate,
-    profileIds: Array.isArray(profileIds) ? profileIds : []
+    profileIds: Array.isArray(profileIds) ? profileIds : [],
+    applyToSeries: seriesMode
   };
 
   if (index === -1) {

@@ -296,3 +296,48 @@
     transform: translate(-20px, 20px) scale(0.9);
   }
 }
+
+// Mobile Responsive Styles
+@media (max-width: 768px) {
+  .login-container {
+    padding: 1rem;
+  }
+
+  .login-card {
+    padding: 2rem 1.5rem;
+    max-width: 95%;
+
+    h1 {
+      font-size: 1.75rem;
+    }
+
+    p {
+      font-size: 0.95rem;
+    }
+
+    .google-btn {
+      padding: 0.875rem;
+      font-size: 0.95rem;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .login-card {
+    padding: 1.5rem 1rem;
+
+    h1 {
+      font-size: 1.5rem;
+    }
+
+    .logo {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    .google-btn {
+      padding: 0.75rem;
+      font-size: 0.9rem;
+    }
+  }
+}

@@ -24,6 +24,10 @@
         </div>
       </div>
 
+      <p class="task-quantity" *ngIf="task.quantity && task.quantity > 1">
+        Quantity: {{ task.quantity }}
+      </p>
+
       <p class="task-description" *ngIf="task.description">
         {{ task.description }}
       </p>
@@ -71,6 +75,10 @@
           <span>{{ task.stars }}</span>
         </div>
       </div>
+
+      <p class="task-quantity" *ngIf="task.quantity && task.quantity > 1">
+        Quantity: {{ task.quantity }}
+      </p>
 
       <p class="task-description" *ngIf="task.description">
         {{ task.description }}
@@ -135,6 +143,15 @@
           <input 
             type="number" 
             [(ngModel)]="newTask.stars" 
+            min="1"
+            class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label>Quantity</label>
+          <input
+            type="number"
+            [(ngModel)]="newTask.quantity"
             min="1"
             class="form-input" />
         </div>

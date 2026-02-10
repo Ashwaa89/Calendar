@@ -1,0 +1,97 @@
+<div class="overview-container">
+  <div class="page-header">
+    <h1>✨ Overview</h1>
+    <p>Profiles, stars, and today's events at a glance</p>
+  </div>
+
+  <div class="overview-grid">
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Profiles</h2>
+        <p>Current stars by profile</p>
+      </div>
+
+      <div class="profiles-list" *ngIf="profiles.length > 0">
+        <div class="profile-card" *ngFor="let profile of profiles">
+          <button class="profile-summary" (click)="toggleProfile(profile.id)">
+            <div class="avatar" [style.borderColor]="profile.color || '#667eea'">{{ profile.avatar }}</div>
+            <div class="details">
+              <h3>{{ profile.name }}</h3>
+              <p *ngIf="profile.age">{{ profile.age }} years old</p>
+            </div>
+            <div class="stars">
+              <span>⭐</span>
+              <strong>{{ profile.stars }}</strong>
+            </div>
+            <span class="chevron">{{ isProfileExpanded(profile.id) ? '▾' : '▸' }}</span>
+          </button>
+
+          <div class="profile-details" [class.open]="isProfileExpanded(profile.id)">
+            <div class="profile-section">
+              <h4>Assigned Tasks</h4>
+              <div class="mini-list" *ngIf="getTasksForProfile(profile.id).length > 0">
+                <div class="mini-item" *ngFor="let task of getTasksForProfile(profile.id) | slice:0:4">
+                  <span class="mini-title">{{ task.title }}</span>
+                  <span class="mini-meta">⭐ {{ task.stars }}</span>
+                </div>
+              </div>
+              <div class="empty-state" *ngIf="getTasksForProfile(profile.id).length === 0">No assigned tasks.</div>
+            </div>
+
+            <div class="profile-section">
+              <h4>Assigned Events</h4>
+              <div class="mini-list" *ngIf="getEventsForProfile(profile.id).length > 0">
+                <div class="mini-item" *ngFor="let assignment of getEventsForProfile(profile.id) | slice:0:4">
+                  <span class="mini-title">{{ assignment.summary || 'Untitled event' }}</span>
+                  <span class="mini-meta">{{ assignment.start ? (assignment.start | date:'shortTime') : 'All day' }}</span>
+                </div>
+              </div>
+              <div class="empty-state" *ngIf="getEventsForProfile(profile.id).length === 0">No assigned events today.</div>
+            </div>
+
+            <div class="profile-section">
+              <h4>Recently Completed</h4>
+              <div class="mini-list" *ngIf="getRecentCompletedTasks(profile.id).length > 0">
+                <div class="mini-item" *ngFor="let task of getRecentCompletedTasks(profile.id)">
+                  <span class="mini-title">{{ task.title }}</span>
+                  <span class="mini-meta">{{ task.lastCompletedAt | date:'shortDate' }}</span>
+                </div>
+              </div>
+              <div class="empty-state" *ngIf="getRecentCompletedTasks(profile.id).length === 0">No recent completions.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty-state" *ngIf="!loadingProfiles && profiles.length === 0">
+        No profiles yet. Add one in Settings.
+      </div>
+
+      <div class="loading" *ngIf="loadingProfiles">
+        Loading profiles...
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Today's Events</h2>
+        <p>Events from selected calendars</p>
+      </div>
+
+      <div class="events-list" *ngIf="events.length > 0">
+        <div class="event-card" *ngFor="let event of events">
+          <div class="event-time">{{ formatEventTime(event) }}</div>
+          <div class="event-title">{{ event.summary || 'Untitled event' }}</div>
+        </div>
+      </div>
+
+      <div class="empty-state" *ngIf="!loadingEvents && events.length === 0">
+        No events for today or no calendars selected.
+      </div>
+
+      <div class="loading" *ngIf="loadingEvents">
+        Loading events...
+      </div>
+    </section>
+  </div>
+</div>

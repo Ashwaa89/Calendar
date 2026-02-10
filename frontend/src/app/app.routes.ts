@@ -4,12 +4,21 @@ import { authGuard } from './guards/auth.guard';
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: '/calendar',
+    redirectTo: '/login',
     pathMatch: 'full'
   },
   {
     path: 'login',
     loadComponent: () => import('./components/login.component').then(m => m.LoginComponent)
+  },
+  {
+    path: 'auth/callback',
+    loadComponent: () => import('./components/login.component').then(m => m.LoginComponent)
+  },
+  {
+    path: 'overview',
+    loadComponent: () => import('./components/overview.component').then(m => m.OverviewComponent),
+    canActivate: [authGuard]
   },
   {
     path: 'shopping',
@@ -54,6 +63,11 @@ export const routes: Routes = [
   {
     path: 'settings',
     loadComponent: () => import('./components/settings.component').then(m => m.SettingsComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'help',
+    loadComponent: () => import('./components/help.component').then(m => m.HelpComponent),
     canActivate: [authGuard]
   }
 ];

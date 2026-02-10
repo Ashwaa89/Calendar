@@ -1,0 +1,21 @@
+<div class="help-container">
+  <div class="page-header">
+    <h1>❓ Help & Walkthrough</h1>
+    <p>Quick guidance for each part of the app.</p>
+  </div>
+
+  <div class="help-grid">
+    <section class="help-panel" *ngFor="let section of sections">
+      <div class="panel-header">
+        <span class="panel-icon">{{ section.icon }}</span>
+        <div>
+          <h2>{{ section.title }}</h2>
+          <p>{{ section.description }}</p>
+        </div>
+      </div>
+      <ul>
+        <li *ngFor="let tip of section.bullets">{{ tip }}</li>
+      </ul>
+    </section>
+  </div>
+</div>

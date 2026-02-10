@@ -8,9 +8,28 @@
   <div class="pin-gate" *ngIf="!pinVerified">
     <div class="pin-card">
       <div class="lock-icon">🔒</div>
-      <h2>Admin Access Required</h2>
-      <p>Enter your admin PIN to access settings</p>
-      <div class="pin-form">
+      <h2 *ngIf="!adminPinSet">Set Admin PIN</h2>
+      <h2 *ngIf="adminPinSet">Admin Access Required</h2>
+      <p *ngIf="!adminPinSet">Create a 4-digit PIN to protect settings</p>
+      <p *ngIf="adminPinSet">Enter your admin PIN to access settings</p>
+
+      <div class="pin-form" *ngIf="!adminPinSet">
+        <input
+          type="password"
+          [(ngModel)]="pinSetup"
+          placeholder="New PIN"
+          class="pin-input"
+          maxlength="4" />
+        <input
+          type="password"
+          [(ngModel)]="pinConfirm"
+          placeholder="Confirm PIN"
+          class="pin-input"
+          maxlength="4" />
+        <button class="btn-primary" (click)="setAdminPin()" [disabled]="pinLoading">Save PIN</button>
+      </div>
+
+      <div class="pin-form" *ngIf="adminPinSet">
         <input
           type="password"
           [(ngModel)]="pinInput"
@@ -19,15 +38,198 @@
           (keyup.enter)="verifyPin()"
           maxlength="4"
           autofocus />
-        <button class="btn-primary" (click)="verifyPin()">Unlock</button>
+        <button class="btn-primary" (click)="verifyPin()" [disabled]="pinLoading">Unlock</button>
       </div>
+
+      <p class="pin-error" *ngIf="pinError">{{ pinError }}</p>
     </div>
   </div>
 
   <!-- Settings Content (shown after PIN verification) -->
   <div class="settings-content" *ngIf="pinVerified">
+    <div class="settings-grid">
     <div class="settings-section">
-      <h2>📅 Calendar Settings</h2>
+      <div class="section-header-toggle" (click)="toggleSection('navigation')">
+        <h2>🧭 Navigation</h2>
+        <span class="toggle-icon">{{ isSectionCollapsed('navigation') ? '▸' : '▾' }}</span>
+      </div>
+      <div class="section-content" [class.collapsed]="isSectionCollapsed('navigation')">
+      <p class="section-description">Choose which sections appear in the sidebar</p>
+
+      <div class="calendar-list">
+        <div class="calendar-item" *ngFor="let feature of availableFeatures">
+          <input
+            type="checkbox"
+            [id]="'feature-' + feature.key"
+            [checked]="enabledFeatures.has(feature.key)"
+            (change)="toggleFeature(feature.key)"
+            [disabled]="feature.key === 'settings'" />
+          <label [for]="'feature-' + feature.key">
+            <span class="calendar-name">{{ feature.label }}</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="loading" *ngIf="featureLoading">
+        <p>Saving feature settings...</p>
+      </div>
+      <div class="no-calendars" *ngIf="featureError">
+        <p>{{ featureError }}</p>
+      </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="section-header-toggle" (click)="toggleSection('theme')">
+        <h2>🎨 Theme</h2>
+        <span class="toggle-icon">{{ isSectionCollapsed('theme') ? '▸' : '▾' }}</span>
+      </div>
+      <div class="section-content" [class.collapsed]="isSectionCollapsed('theme')">
+      <p class="section-description">Pick a built-in theme or customize your own colors</p>
+
+      <div class="theme-controls">
+        <div class="form-group">
+          <label>Preset</label>
+          <select class="form-input" [(ngModel)]="themeSelection" (change)="selectThemePreset(themeSelection)">
+            <option *ngFor="let theme of themePresets" [value]="theme.name">{{ theme.name }}</option>
+            <option value="Custom">Custom</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Background Type</label>
+            <select class="form-input" [(ngModel)]="currentTheme.backgroundType" (change)="applyThemePreview()">
+              <option value="gradient">Gradient</option>
+              <option value="solid">Solid</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Gradient Angle</label>
+            <input
+              type="number"
+              class="form-input"
+              min="0"
+              max="360"
+              [(ngModel)]="currentTheme.backgroundAngle"
+              (input)="applyThemePreview()" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Background Start</label>
+            <input type="color" [(ngModel)]="currentTheme.backgroundStart" (input)="applyThemePreview()" />
+          </div>
+          <div class="form-group">
+            <label>Background End</label>
+            <input type="color" [(ngModel)]="currentTheme.backgroundEnd" (input)="applyThemePreview()" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Tile Background</label>
+            <input type="color" [(ngModel)]="currentTheme.cardBackground" (input)="applyThemePreview()" />
+          </div>
+          <div class="form-group">
+            <label>Panel Background</label>
+            <input type="color" [(ngModel)]="currentTheme.panelBackground" (input)="applyThemePreview()" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Section Background</label>
+            <input type="color" [(ngModel)]="currentTheme.sectionBackground" (input)="applyThemePreview()" />
+          </div>
+          <div class="form-group">
+            <label>Section Text</label>
+            <input type="color" [(ngModel)]="currentTheme.sectionText" (input)="applyThemePreview()" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Sidebar Background</label>
+            <input type="color" [(ngModel)]="currentTheme.sidebarBackground" (input)="applyThemePreview()" />
+          </div>
+          <div class="form-group">
+            <label>Accent Color</label>
+            <input type="color" [(ngModel)]="currentTheme.accent" (input)="applyThemePreview()" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Header Text</label>
+            <input type="color" [(ngModel)]="currentTheme.headerText" (input)="applyThemePreview()" />
+          </div>
+          <div class="form-group">
+            <label>Body Text</label>
+            <input type="color" [(ngModel)]="currentTheme.bodyText" (input)="applyThemePreview()" />
+          </div>
+        </div>
+
+        <div class="theme-actions">
+          <button class="btn-secondary" (click)="applyThemePreview()">Preview</button>
+          <button class="btn-primary" (click)="saveTheme()" [disabled]="themeSaving">Save Theme</button>
+        </div>
+
+        <p class="theme-error" *ngIf="themeError">{{ themeError }}</p>
+      </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="section-header-toggle" (click)="toggleSection('security')">
+        <h2>🔐 Security</h2>
+        <span class="toggle-icon">{{ isSectionCollapsed('security') ? '▸' : '▾' }}</span>
+      </div>
+      <div class="section-content" [class.collapsed]="isSectionCollapsed('security')">
+      <p class="section-description">Choose when the PIN is required and auto-lock behavior</p>
+
+      <div class="theme-controls">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Auto-lock (minutes)</label>
+            <input
+              type="number"
+              class="form-input"
+              min="0"
+              max="240"
+              [(ngModel)]="pinSettings.autoLockMinutes" />
+          </div>
+        </div>
+
+        <div class="calendar-list">
+          <div class="calendar-item" *ngFor="let action of pinActions">
+            <input
+              type="checkbox"
+              [id]="'pin-action-' + action.key"
+              [checked]="pinSettings.requiredActions.includes(action.key)"
+              (change)="toggleRequiredAction(action.key)" />
+            <label [for]="'pin-action-' + action.key">
+              <span class="calendar-name">{{ action.label }}</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="theme-actions">
+          <button class="btn-primary" (click)="savePinSettings()" [disabled]="pinSettingsSaving">Save Security</button>
+        </div>
+
+        <p class="theme-error" *ngIf="pinSettingsError">{{ pinSettingsError }}</p>
+      </div>
+      </div>
+    </div>
+
+    <div class="settings-section full">
+      <div class="section-header-toggle" (click)="toggleSection('calendar')">
+        <h2>📅 Calendar Settings</h2>
+        <span class="toggle-icon">{{ isSectionCollapsed('calendar') ? '▸' : '▾' }}</span>
+      </div>
+      <div class="section-content" [class.collapsed]="isSectionCollapsed('calendar')">
       <p class="section-description">Select which Google Calendars to display in your calendar view</p>
       
       <div class="calendar-list" *ngIf="calendars.length > 0">
@@ -50,6 +252,78 @@
       <div class="loading" *ngIf="loading">
         <p>Loading calendars...</p>
       </div>
+      </div>
+    </div>
+
+    <div class="settings-section full">
+      <div class="section-header-toggle" (click)="toggleSection('profiles')">
+        <h2>👨‍👩‍👧‍👦 Family Profiles</h2>
+        <span class="toggle-icon">{{ isSectionCollapsed('profiles') ? '▸' : '▾' }}</span>
+      </div>
+      <div class="section-content" [class.collapsed]="isSectionCollapsed('profiles')">
+      <p class="section-description">Manage profiles directly from settings</p>
+      <div class="embedded-profiles">
+        <app-profiles></app-profiles>
+      </div>
+      </div>
+    </div>
+
+    <div class="settings-section full">
+      <div class="section-header-toggle" (click)="toggleSection('help')">
+        <h2>❓ Help & Tips</h2>
+        <span class="toggle-icon">{{ isSectionCollapsed('help') ? '▸' : '▾' }}</span>
+      </div>
+      <div class="section-content" [class.collapsed]="isSectionCollapsed('help')">
+      <p class="section-description">Quick explanations for the main features</p>
+
+      <div class="help-grid">
+        <div class="help-card">
+          <span class="help-icon">✨</span>
+          <h3>Overview</h3>
+          <p>See stars, assigned tasks, and today’s events in one place. Expand each profile for details.</p>
+        </div>
+        <div class="help-card">
+          <span class="help-icon">📅</span>
+          <h3>Calendar</h3>
+          <p>Sync Google events, assign profiles, and use the search box to find events quickly.</p>
+        </div>
+        <div class="help-card">
+          <span class="help-icon">✅</span>
+          <h3>Tasks</h3>
+          <p>Create task templates and assign them to profiles. Quantities and stars track rewards.</p>
+        </div>
+        <div class="help-card">
+          <span class="help-icon">🏆</span>
+          <h3>Rewards</h3>
+          <p>Create prizes and redeem them with stars. Great for motivation and goals.</p>
+        </div>
+        <div class="help-card">
+          <span class="help-icon">🍽️</span>
+          <h3>Meal Planner</h3>
+          <p>Plan meals for the week and track ingredients for shopping prep.</p>
+        </div>
+        <div class="help-card">
+          <span class="help-icon">🛒</span>
+          <h3>Inventory & Shopping</h3>
+          <p>Track pantry items and generate or add shopping list items.</p>
+        </div>
+        <div class="help-card">
+          <span class="help-icon">🎨</span>
+          <h3>Theme & Layout</h3>
+          <p>Pick a theme or customize colors. Sections can be shown/hidden in Navigation.</p>
+        </div>
+        <div class="help-card">
+          <span class="help-icon">🔐</span>
+          <h3>Security</h3>
+          <p>Set a PIN and choose which actions require it. Use auto-lock for safety.</p>
+        </div>
+      </div>
+
+      <div class="help-actions">
+        <a class="btn-secondary" routerLink="/help">Open walkthrough</a>
+      </div>
+      </div>
+    </div>
     </div>
   </div>
 </div>

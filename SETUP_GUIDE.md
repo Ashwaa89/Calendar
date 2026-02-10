@@ -595,3 +595,74 @@ You've successfully set up and deployed your Family Calendar App! 🚀
 - Manage shopping lists
 
 Enjoy your new Family Calendar App! 🎊
+
+---
+
+## ☁️ Google Cloud Run Deployment
+
+This deploys the full-stack app (Express API + Angular build) as a single container.
+
+### Step 1: Install and configure gcloud
+
+1. Install the Google Cloud CLI: https://cloud.google.com/sdk/docs/install
+2. Log in and select your project:
+
+```bash
+gcloud auth login
+gcloud config set project YOUR_PROJECT_ID
+```
+
+3. Enable required services:
+
+```bash
+gcloud services enable run.googleapis.com artifactregistry.googleapis.com cloudbuild.googleapis.com
+```
+
+### Step 2: Deploy to Cloud Run
+
+From the repo root:
+
+```bash
+npm run deploy:gcp
+```
+
+This runs:
+
+```bash
+gcloud run deploy family-calendar --source . --region us-central1 --allow-unauthenticated
+```
+
+When prompted, allow unauthenticated access (the app uses OAuth for sign-in).
+
+### Step 3: Set environment variables
+
+Set all required vars from your .env file. Example:
+
+```bash
+gcloud run services update family-calendar --region us-central1 --set-env-vars \
+NODE_ENV=production,\
+FRONTEND_URL=https://YOUR_CLOUD_RUN_URL,\
+FIREBASE_PROJECT_ID=your-project-id,\
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com,\
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----\\n",\
+GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com,\
+GOOGLE_CLIENT_SECRET=your-client-secret,\
+GOOGLE_REDIRECT_URI=https://YOUR_CLOUD_RUN_URL/login,\
+SESSION_SECRET=your-random-secret
+```
+
+### Step 4: Update Google OAuth settings
+
+In Google Cloud Console → APIs & Services → Credentials → OAuth client:
+
+- Authorized JavaScript origins:
+  - `https://YOUR_CLOUD_RUN_URL`
+- Authorized redirect URIs:
+  - `https://YOUR_CLOUD_RUN_URL/login`
+  - `https://YOUR_CLOUD_RUN_URL/auth/callback`
+
+### Step 5: Verify the deployment
+
+1. Open the Cloud Run URL in your browser
+2. Click "Continue with Google"
+3. Confirm the app loads and API calls succeed

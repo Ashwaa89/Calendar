@@ -33,3 +33,6 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+firebase_key.txt
+SETUP_GUIDE.md
+frontend/src/environments/firebase.config.ts

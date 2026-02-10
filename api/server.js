@@ -1,6 +1,9 @@
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const http = require('http');
+const WebSocket = require('ws');
 require('dotenv').config();
 
 // Check if demo mode is enabled
@@ -36,6 +39,85 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server, path: '/api/ws' });
+const clientsByUser = new Map();
+
+const registerClient = (ws, userId, clientId) => {
+  if (!userId) return;
+  ws.userId = userId;
+  ws.clientId = clientId || null;
+  if (!clientsByUser.has(userId)) {
+    clientsByUser.set(userId, new Set());
+  }
+  clientsByUser.get(userId).add(ws);
+};
+
+const removeClient = (ws) => {
+  if (!ws.userId) return;
+  const bucket = clientsByUser.get(ws.userId);
+  if (!bucket) return;
+  bucket.delete(ws);
+  if (bucket.size === 0) {
+    clientsByUser.delete(ws.userId);
+  }
+};
+
+const broadcastToUser = (userId, message, exclude) => {
+  const bucket = clientsByUser.get(userId);
+  if (!bucket) return;
+  const payload = JSON.stringify(message);
+  bucket.forEach((client) => {
+    if (client.readyState !== WebSocket.OPEN) return;
+    if (exclude && client === exclude) return;
+    client.send(payload);
+  });
+};
+
+wss.on('connection', (ws) => {
+  ws.isAlive = true;
+
+  ws.on('pong', () => {
+    ws.isAlive = true;
+  });
+
+  ws.on('message', (data) => {
+    let message = null;
+    try {
+      message = JSON.parse(data);
+    } catch (error) {
+      console.error('Invalid websocket message:', error);
+      return;
+    }
+
+    if (message.type === 'hello') {
+      registerClient(ws, message.userId, message.clientId);
+      return;
+    }
+
+    if (message.type === 'update' && message.userId) {
+      broadcastToUser(message.userId, message, ws);
+    }
+  });
+
+  ws.on('close', () => removeClient(ws));
+  ws.on('error', () => removeClient(ws));
+});
+
+// Make broadcastToUser available to routes
+app.locals.broadcastToUser = broadcastToUser;
+
+setInterval(() => {
+  wss.clients.forEach((ws) => {
+    if (!ws.isAlive) {
+      ws.terminate();
+      return;
+    }
+    ws.isAlive = false;
+    ws.ping();
+  });
+}, 30000);
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ 
@@ -69,9 +151,21 @@ app.use((err, req, res, next) => {
   });
 });
 
-// For local development
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => {
+// Serve the Angular app in production
+if (process.env.NODE_ENV === 'production') {
+  const distPath = path.join(__dirname, '..', 'frontend', 'dist', 'frontend');
+  app.use(express.static(distPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/')) {
+      return next();
+    }
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+}
+
+// Listen when running as a standalone server (not in Vercel serverless)
+if (!process.env.VERCEL) {
+  server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
 }

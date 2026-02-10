@@ -71,7 +71,7 @@ router.get('/profile/:profileId', async (req, res) => {
 // Create a new task in catalog (optionally assign to profile)
 router.post('/', async (req, res) => {
   try {
-    const { userId, title, description, stars, frequency, frequencyUnit, profileId } = req.body;
+    const { userId, title, description, stars, frequency, frequencyUnit, profileId, quantity } = req.body;
     const db = getFirestore();
     const now = new Date().toISOString();
 
@@ -84,6 +84,7 @@ router.post('/', async (req, res) => {
       title,
       description: description || '',
       stars: stars || 1,
+      quantity: Number.isFinite(Number(quantity)) ? Number(quantity) : 1,
       frequency: frequency || null,
       frequencyUnit: frequencyUnit || null, // 'hours', 'days', 'weeks'
       createdAt: now,

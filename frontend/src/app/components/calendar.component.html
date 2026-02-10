@@ -32,6 +32,36 @@
         <button class="nav-btn" (click)="previousMonth()">‹</button>
         <h2>{{ formatMonthYear() }}</h2>
         <button class="nav-btn" (click)="nextMonth()">›</button>
+        <div class="event-search">
+          <input
+            type="search"
+            placeholder="Search events"
+            [(ngModel)]="searchQuery"
+            aria-label="Search events" />
+          <button class="clear-search" *ngIf="searchQuery" (click)="clearSearch()" aria-label="Clear search">×</button>
+        </div>
+      </div>
+
+      <div class="search-results" *ngIf="searchQuery">
+        <div class="search-header">
+          <h3>Results</h3>
+          <span>{{ getSearchResults().length }} match{{ getSearchResults().length === 1 ? '' : 'es' }}</span>
+        </div>
+        <div class="search-list" *ngIf="getSearchResults().length > 0">
+          <button
+            class="search-item"
+            *ngFor="let event of getSearchResults() | slice:0:20"
+            (click)="openAssignModal(event)">
+            <div class="search-meta">
+              <span class="search-date">{{ formatEventDate(event) }}</span>
+              <span class="search-time">{{ formatEventClock(event) }}</span>
+            </div>
+            <div class="search-title">{{ event.summary || 'Untitled event' }}</div>
+          </button>
+        </div>
+        <div class="empty-state" *ngIf="getSearchResults().length === 0">
+          No events match your search.
+        </div>
       </div>
 
       <div class="calendar-grid">
@@ -54,6 +84,7 @@
               class="event-dot"
               *ngFor="let event of getFilteredEventsForDay(day)"
               [title]="event.summary"
+              [ngStyle]="getEventStyle(event)"
               (click)="openAssignModal(event)">
               <span class="event-title">{{ event.summary }}</span>
               <span class="event-profiles" *ngIf="getAssignedProfiles(event).length">
@@ -86,6 +117,10 @@
       <div class="modal-body">
         <p class="modal-event" *ngIf="selectedEvent">{{ selectedEvent.summary }}</p>
         <p class="modal-subtitle">Choose profiles for this event (multi-select)</p>
+        <label class="series-toggle" *ngIf="selectedEvent?.recurringEventId">
+          <input type="checkbox" [(ngModel)]="applyToSeries" (change)="setApplyToSeries(applyToSeries)" />
+          <span>Apply to entire series</span>
+        </label>
       </div>
 
       <div class="profile-strip">

@@ -1,8 +1,10 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
 import { ProfileService, Profile, Task, TaskCatalogItem } from '../services/profile.service';
+import { WebSocketService } from '../services/websocket.service';
+import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-tasks-hub',
@@ -11,23 +13,34 @@ import { ProfileService, Profile, Task, TaskCatalogItem } from '../services/prof
   templateUrl: './tasks-hub.component.html',
   styleUrls: ['./tasks-hub.component.scss']
 })
-export class TasksHubComponent implements OnInit {
+export class TasksHubComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private profileService = inject(ProfileService);
+  private websocket = inject(WebSocketService);
+  private destroy$ = new Subject<void>();
 
   profiles: Profile[] = [];
   catalogTasks: TaskCatalogItem[] = [];
-  assignedTasks: Task[] = [];
   loading = false;
-  showAssignModal = false;
   showAddModal = false;
-  taskToAssign: TaskCatalogItem | null = null;
-  modalProfileId = '';
+  showEditModal = false;
+  editingTaskId: string | null = null;
+  assignmentsByProfile: Map<string, Task[]> = new Map();
 
   newTask = {
     title: '',
     description: '',
     stars: 1,
+    quantity: 1,
+    frequency: null as number | null,
+    frequencyUnit: 'days' as 'hours' | 'days' | 'weeks'
+  };
+
+  editTask = {
+    title: '',
+    description: '',
+    stars: 1,
+    quantity: 1,
     frequency: null as number | null,
     frequencyUnit: 'days' as 'hours' | 'days' | 'weeks'
   };
@@ -35,6 +48,23 @@ export class TasksHubComponent implements OnInit {
   ngOnInit() {
     this.loadProfiles();
     this.loadCatalogTasks();
+
+    this.websocket.updates$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(message => {
+        if (message.scope === 'tasks') {
+          this.loadCatalogTasks();
+          this.loadAssignments();
+        }
+        if (message.scope === 'profiles') {
+          this.loadProfiles();
+        }
+      });
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   loadProfiles() {
@@ -44,9 +74,7 @@ export class TasksHubComponent implements OnInit {
     this.profileService.getProfiles(user.id).subscribe({
       next: (response) => {
         this.profiles = response.profiles;
-        if (!this.modalProfileId && this.profiles.length > 0) {
-          this.modalProfileId = this.profiles[0].id;
-        }
+        this.loadAssignments();
       },
       error: (error) => {
         console.error('Error loading profiles:', error);
@@ -63,6 +91,7 @@ export class TasksHubComponent implements OnInit {
       next: (response) => {
         this.catalogTasks = response.tasks;
         this.loading = false;
+        this.loadAssignments();
       },
       error: (error) => {
         console.error('Error loading task catalog:', error);
@@ -71,16 +100,18 @@ export class TasksHubComponent implements OnInit {
     });
   }
 
-  loadAssignedTasks(profileId: string) {
-    if (!profileId) return;
+  loadAssignments() {
+    if (this.profiles.length === 0) return;
 
-    this.profileService.getTasks(profileId).subscribe({
-      next: (response) => {
-        this.assignedTasks = response.tasks;
-      },
-      error: (error) => {
-        console.error('Error loading assigned tasks:', error);
-      }
+    this.profiles.forEach(profile => {
+      this.profileService.getTasks(profile.id).subscribe({
+        next: (response) => {
+          this.assignmentsByProfile.set(profile.id, response.tasks);
+        },
+        error: (error) => {
+          console.error('Error loading assigned tasks:', error);
+        }
+      });
     });
   }
 
@@ -90,6 +121,7 @@ export class TasksHubComponent implements OnInit {
       title: '',
       description: '',
       stars: 1,
+      quantity: 1,
       frequency: null,
       frequencyUnit: 'days'
     };
@@ -99,12 +131,29 @@ export class TasksHubComponent implements OnInit {
     this.showAddModal = false;
   }
 
+  openEditModal(task: TaskCatalogItem) {
+    this.showEditModal = true;
+    this.editingTaskId = task.id;
+    this.editTask = {
+      title: task.title,
+      description: task.description || '',
+      stars: task.stars,
+      quantity: task.quantity || 1,
+      frequency: task.frequency ?? null,
+      frequencyUnit: task.frequencyUnit || 'days'
+    };
+  }
+
+  closeEditModal() {
+    this.showEditModal = false;
+    this.editingTaskId = null;
+  }
+
   async addTask() {
     const user = this.authService.getCurrentUser();
     if (!user || !this.newTask.title) return;
 
-    // Require PIN for adding tasks
-    const pinVerified = await this.authService.promptForPin();
+    const pinVerified = await this.authService.requirePinFor('tasks:add');
     if (!pinVerified) return;
 
     this.loading = true;
@@ -113,6 +162,7 @@ export class TasksHubComponent implements OnInit {
       title: this.newTask.title,
       description: this.newTask.description,
       stars: this.newTask.stars,
+      quantity: this.newTask.quantity,
       frequencyUnit: this.newTask.frequencyUnit
     };
     if (this.newTask.frequency !== null) {
@@ -132,34 +182,72 @@ export class TasksHubComponent implements OnInit {
     });
   }
 
-  openAssignModal(task: TaskCatalogItem) {
-    this.taskToAssign = task;
-    this.showAssignModal = true;
-    if (!this.modalProfileId && this.profiles.length > 0) {
-      this.modalProfileId = this.profiles[0].id;
+  async updateTask() {
+    if (!this.editingTaskId || !this.editTask.title) return;
+
+    const pinVerified = await this.authService.requirePinFor('tasks:edit');
+    if (!pinVerified) return;
+
+    const updates: any = {
+      title: this.editTask.title,
+      description: this.editTask.description,
+      stars: this.editTask.stars,
+      quantity: this.editTask.quantity,
+      frequencyUnit: this.editTask.frequencyUnit
+    };
+    if (this.editTask.frequency !== null) {
+      updates.frequency = this.editTask.frequency;
+    } else {
+      updates.frequency = null;
     }
-    if (this.modalProfileId) {
-      this.loadAssignedTasks(this.modalProfileId);
-    }
-  }
 
-  closeAssignModal() {
-    this.showAssignModal = false;
-    this.taskToAssign = null;
-  }
-
-  selectModalProfile(profileId: string) {
-    this.modalProfileId = profileId;
-    this.loadAssignedTasks(profileId);
-  }
-
-  confirmAssign() {
-    if (!this.modalProfileId || !this.taskToAssign) return;
-
-    this.profileService.assignTask(this.modalProfileId, this.taskToAssign.id).subscribe({
+    this.profileService.updateTask(this.editingTaskId, updates).subscribe({
       next: () => {
-        this.loadAssignedTasks(this.modalProfileId);
-        this.closeAssignModal();
+        this.catalogTasks = this.catalogTasks.map(task =>
+          task.id === this.editingTaskId ? { ...task, ...updates } : task
+        );
+        this.closeEditModal();
+      },
+      error: (error) => {
+        console.error('Error updating task:', error);
+      }
+    });
+  }
+
+  async deleteTask(taskId: string) {
+    if (!confirm('Are you sure you want to delete this task?')) return;
+
+    const pinVerified = await this.authService.requirePinFor('tasks:delete');
+    if (!pinVerified) return;
+
+    this.profileService.deleteTask(taskId).subscribe({
+      next: () => {
+        this.catalogTasks = this.catalogTasks.filter(task => task.id !== taskId);
+      },
+      error: (error) => {
+        console.error('Error deleting task:', error);
+      }
+    });
+  }
+
+  async assignTaskToProfile(profileId: string, task: TaskCatalogItem) {
+    const pending = this.getPendingAssignments(profileId, task.id);
+    const available = this.getAvailableQuantity(task);
+    if (pending > 0 || available <= 0) return;
+
+    const pinVerified = await this.authService.requirePinFor('tasks:assign');
+    if (!pinVerified) return;
+
+    this.profileService.assignTask(profileId, task.id).subscribe({
+      next: () => {
+        this.profileService.getTasks(profileId).subscribe({
+          next: (response) => {
+            this.assignmentsByProfile.set(profileId, response.tasks);
+          },
+          error: (error) => {
+            console.error('Error loading assigned tasks:', error);
+          }
+        });
       },
       error: (error) => {
         console.error('Error assigning task:', error);
@@ -167,7 +255,28 @@ export class TasksHubComponent implements OnInit {
     });
   }
 
-  isAssigned(taskId: string): boolean {
-    return this.assignedTasks.some(t => t.taskId === taskId);
+  getAssignments(profileId: string): Task[] {
+    return this.assignmentsByProfile.get(profileId) || [];
+  }
+
+  getPendingAssignments(profileId: string, taskId: string): number {
+    return this.getAssignments(profileId).filter(task => task.taskId === taskId && !task.completed).length;
+  }
+
+  getTotalPendingAssignments(taskId: string): number {
+    let count = 0;
+    this.assignmentsByProfile.forEach(tasks => {
+      count += tasks.filter(task => task.taskId === taskId && !task.completed).length;
+    });
+    return count;
+  }
+
+  getAvailableQuantity(task: TaskCatalogItem): number {
+    const quantity = Number.isFinite(Number(task.quantity)) ? Number(task.quantity) : 1;
+    return Math.max(0, quantity - this.getTotalPendingAssignments(task.id));
+  }
+
+  isTaskAvailableForProfile(profileId: string, task: TaskCatalogItem): boolean {
+    return this.getAvailableQuantity(task) > 0 && this.getPendingAssignments(profileId, task.id) === 0;
   }
 }

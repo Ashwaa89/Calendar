@@ -1,0 +1,279 @@
+.overview-container {
+  background: var(--panel-bg);
+  border-radius: 24px;
+  padding: 2rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  animation: fadeSlideIn 0.6s ease-out;
+}
+
+.page-header {
+  margin-bottom: 2rem;
+
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--header-text);
+    margin: 0 0 0.5rem 0;
+  }
+
+  p {
+    color: var(--body-text);
+    margin: 0;
+  }
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+.panel {
+  background: var(--section-bg);
+  border-radius: 18px;
+  padding: 1.5rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  animation: popIn 0.45s ease-out;
+}
+
+.panel-header {
+  margin-bottom: 1rem;
+
+  h2 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.25rem;
+    color: var(--header-text);
+  }
+
+  p {
+    margin: 0;
+    color: var(--body-text);
+    font-size: 0.9rem;
+  }
+}
+
+.profiles-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.profile-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: var(--card-bg);
+  border-radius: 14px;
+  padding: 0.75rem;
+  animation: fadeUp 0.4s ease-out;
+}
+
+.profile-summary {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  background: transparent;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.profile-card .avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  border: 3px solid var(--accent-color);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.profile-card .details {
+  h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--header-text);
+  }
+
+  p {
+    margin: 0.25rem 0 0 0;
+    color: var(--body-text);
+    font-size: 0.85rem;
+  }
+}
+
+.profile-card .stars {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 1rem;
+  color: #ff9500;
+}
+
+.profile-card .chevron {
+  font-size: 1.1rem;
+  color: var(--body-text);
+}
+
+.profile-details {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+}
+
+.profile-details.open {
+  max-height: 600px;
+  opacity: 1;
+}
+
+.smile-chart {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem 0.5rem;
+
+  .smile {
+    filter: grayscale(1);
+    opacity: 0.4;
+    transition: filter 0.2s ease, opacity 0.2s ease;
+  }
+
+  .smile.active {
+    filter: grayscale(0);
+    opacity: 1;
+  }
+}
+
+.profile-section {
+  margin-top: 0.75rem;
+
+  h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.95rem;
+    color: var(--header-text);
+  }
+}
+
+.mini-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mini-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.mini-title {
+  color: var(--header-text);
+  font-weight: 600;
+}
+
+.mini-meta {
+  color: var(--body-text);
+  font-size: 0.85rem;
+}
+
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.event-card {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  animation: fadeUp 0.45s ease-out;
+}
+
+.event-time {
+  font-weight: 700;
+  color: var(--accent-color);
+  min-width: 70px;
+}
+
+.event-title {
+  color: var(--header-text);
+  font-weight: 600;
+}
+
+.empty-state {
+  color: var(--body-text);
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+  padding: 0.75rem;
+}
+
+.loading {
+  color: var(--body-text);
+  padding: 0.75rem;
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 700px) {
+  .overview-container {
+    padding: 1.5rem;
+  }
+
+  .profile-summary {
+    grid-template-columns: auto 1fr auto;
+  }
+
+  .profile-card .stars {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overview-container,
+  .panel,
+  .profile-card,
+  .event-card {
+    animation: none;
+  }
+}

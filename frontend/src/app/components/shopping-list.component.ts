@@ -1,8 +1,10 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
 import { MealService, ShoppingItem } from '../services/meal.service';
+import { WebSocketService } from '../services/websocket.service';
+import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-shopping-list',
@@ -11,9 +13,11 @@ import { MealService, ShoppingItem } from '../services/meal.service';
   templateUrl: './shopping-list.component.html',
   styleUrls: ['./shopping-list.component.scss']
 })
-export class ShoppingListComponent implements OnInit {
+export class ShoppingListComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private mealService = inject(MealService);
+  private websocket = inject(WebSocketService);
+  private destroy$ = new Subject<void>();
 
   shoppingList: ShoppingItem[] = [];
   loading = false;
@@ -30,6 +34,19 @@ export class ShoppingListComponent implements OnInit {
 
   ngOnInit() {
     this.loadShoppingList();
+
+    this.websocket.updates$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(message => {
+        if (message.scope === 'shopping') {
+          this.loadShoppingList();
+        }
+      });
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   loadShoppingList() {
@@ -70,8 +87,7 @@ export class ShoppingListComponent implements OnInit {
     const user = this.authService.getCurrentUser();
     if (!user || !this.newItem.name) return;
 
-    // Require PIN for adding shopping items
-    const pinVerified = await this.authService.promptForPin();
+    const pinVerified = await this.authService.requirePinFor('shopping:manage');
     if (!pinVerified) return;
 
     this.loading = true;

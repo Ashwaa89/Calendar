@@ -1,8 +1,10 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
 import { MealService, InventoryItem } from '../services/meal.service';
+import { WebSocketService } from '../services/websocket.service';
+import { Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-inventory',
@@ -11,9 +13,11 @@ import { MealService, InventoryItem } from '../services/meal.service';
   templateUrl: './inventory.component.html',
   styleUrls: ['./inventory.component.scss']
 })
-export class InventoryComponent implements OnInit {
+export class InventoryComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private mealService = inject(MealService);
+  private websocket = inject(WebSocketService);
+  private destroy$ = new Subject<void>();
 
   inventory: InventoryItem[] = [];
   loading = false;
@@ -32,6 +36,19 @@ export class InventoryComponent implements OnInit {
 
   ngOnInit() {
     this.loadInventory();
+
+    this.websocket.updates$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(message => {
+        if (message.scope === 'inventory') {
+          this.loadInventory();
+        }
+      });
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   loadInventory() {
@@ -70,8 +87,7 @@ export class InventoryComponent implements OnInit {
     const user = this.authService.getCurrentUser();
     if (!user || !this.newItem.name) return;
 
-    // Require PIN for adding inventory items
-    const pinVerified = await this.authService.promptForPin();
+    const pinVerified = await this.authService.requirePinFor('inventory:manage');
     if (!pinVerified) return;
 
     this.loading = true;
@@ -95,8 +111,7 @@ export class InventoryComponent implements OnInit {
   async deleteInventoryItem(itemId: string) {
     if (!confirm('Delete this item?')) return;
 
-    // Require PIN for deleting inventory items
-    const pinVerified = await this.authService.promptForPin();
+    const pinVerified = await this.authService.requirePinFor('inventory:manage');
     if (!pinVerified) return;
 
     this.mealService.deleteInventoryItem(itemId).subscribe({

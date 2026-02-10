@@ -1,11 +1,22 @@
 const { google } = require('googleapis');
 require('dotenv').config();
 
-const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  process.env.GOOGLE_REDIRECT_URI
-);
+let oauth2Client = null;
+
+function getOAuth2Client() {
+  if (!oauth2Client) {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    const redirectUri = process.env.GOOGLE_REDIRECT_URI;
+    
+    if (!clientId || !clientSecret || !redirectUri) {
+      throw new Error(`Missing OAuth configuration. Client ID: ${!!clientId}, Client Secret: ${!!clientSecret}, Redirect URI: ${!!redirectUri}`);
+    }
+    
+    oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
+  }
+  return oauth2Client;
+}
 
 const SCOPES = [
   'https://www.googleapis.com/auth/userinfo.profile',
@@ -15,6 +26,13 @@ const SCOPES = [
 ];
 
 function getAuthUrl() {
+  const oauth2Client = getOAuth2Client();
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI;
+  console.log('🔑 OAuth Config:', {
+    clientId: process.env.GOOGLE_CLIENT_ID?.substring(0, 20) + '...',
+    redirectUri: redirectUri
+  });
+  
   return oauth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: SCOPES,
@@ -23,11 +41,17 @@ function getAuthUrl() {
 }
 
 async function getTokensFromCode(code) {
-  const { tokens } = await oauth2Client.getToken(code);
+  const oauth2Client = getOAuth2Client();
+  // Explicitly pass redirect_uri to ensure it matches what was used during authorization
+  const { tokens } = await oauth2Client.getToken({
+    code,
+    redirect_uri: process.env.GOOGLE_REDIRECT_URI
+  });
   return tokens;
 }
 
 async function getUserCalendars(accessToken) {
+  const oauth2Client = getOAuth2Client();
   oauth2Client.setCredentials({ access_token: accessToken });
   const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
   
@@ -36,6 +60,7 @@ async function getUserCalendars(accessToken) {
 }
 
 async function getCalendarEvents(accessToken, calendarId, timeMin, timeMax) {
+  const oauth2Client = getOAuth2Client();
   oauth2Client.setCredentials({ access_token: accessToken });
   const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
   
@@ -51,6 +76,7 @@ async function getCalendarEvents(accessToken, calendarId, timeMin, timeMax) {
 }
 
 async function getUserInfo(accessToken) {
+  const oauth2Client = getOAuth2Client();
   oauth2Client.setCredentials({ access_token: accessToken });
   const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
   

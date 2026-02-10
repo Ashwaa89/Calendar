@@ -1,7 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import { apiUrl } from '../../environments/firebase.config';
+import { WebSocketService } from './websocket.service';
 
 export interface Ingredient {
   name: string;
@@ -49,6 +50,7 @@ export interface ShoppingItem {
 })
 export class MealService {
   private http = inject(HttpClient);
+  private websocket = inject(WebSocketService);
 
   // Meal Planning
   getMeals(userId: string, startDate?: string, endDate?: string): Observable<{ meals: Meal[] }> {
@@ -62,15 +64,18 @@ export class MealService {
   }
 
   createMeal(meal: Partial<Meal>): Observable<{ success: boolean; meal: Meal }> {
-    return this.http.post<{ success: boolean; meal: Meal }>(`${apiUrl}/meals`, meal);
+    return this.http.post<{ success: boolean; meal: Meal }>(`${apiUrl}/meals`, meal)
+      .pipe(tap(() => this.websocket.sendUpdate('meals')));
   }
 
   updateMeal(mealId: string, updates: Partial<Meal>): Observable<{ success: boolean }> {
-    return this.http.put<{ success: boolean }>(`${apiUrl}/meals/${mealId}`, updates);
+    return this.http.put<{ success: boolean }>(`${apiUrl}/meals/${mealId}`, updates)
+      .pipe(tap(() => this.websocket.sendUpdate('meals')));
   }
 
   deleteMeal(mealId: string): Observable<{ success: boolean }> {
-    return this.http.delete<{ success: boolean }>(`${apiUrl}/meals/${mealId}`);
+    return this.http.delete<{ success: boolean }>(`${apiUrl}/meals/${mealId}`)
+      .pipe(tap(() => this.websocket.sendUpdate('meals')));
   }
 
   // Inventory
@@ -79,15 +84,18 @@ export class MealService {
   }
 
   addInventoryItem(item: Partial<InventoryItem>): Observable<{ success: boolean; item: InventoryItem }> {
-    return this.http.post<{ success: boolean; item: InventoryItem }>(`${apiUrl}/inventory`, item);
+    return this.http.post<{ success: boolean; item: InventoryItem }>(`${apiUrl}/inventory`, item)
+      .pipe(tap(() => this.websocket.sendUpdate('inventory')));
   }
 
   updateInventoryItem(itemId: string, updates: Partial<InventoryItem>): Observable<{ success: boolean }> {
-    return this.http.put<{ success: boolean }>(`${apiUrl}/inventory/${itemId}`, updates);
+    return this.http.put<{ success: boolean }>(`${apiUrl}/inventory/${itemId}`, updates)
+      .pipe(tap(() => this.websocket.sendUpdate('inventory')));
   }
 
   deleteInventoryItem(itemId: string): Observable<{ success: boolean }> {
-    return this.http.delete<{ success: boolean }>(`${apiUrl}/inventory/${itemId}`);
+    return this.http.delete<{ success: boolean }>(`${apiUrl}/inventory/${itemId}`)
+      .pipe(tap(() => this.websocket.sendUpdate('inventory')));
   }
 
   // Shopping List
@@ -100,6 +108,7 @@ export class MealService {
   }
 
   addToShoppingList(item: Partial<ShoppingItem>): Observable<{ success: boolean; item: ShoppingItem }> {
-    return this.http.post<{ success: boolean; item: ShoppingItem }>(`${apiUrl}/inventory/shopping`, item);
+    return this.http.post<{ success: boolean; item: ShoppingItem }>(`${apiUrl}/inventory/shopping`, item)
+      .pipe(tap(() => this.websocket.sendUpdate('shopping')));
   }
 }
